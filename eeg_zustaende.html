@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EEG · Mentale Zustände – Elektroden-Mapping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   THEME / TOKENS  – hier zentral umfärben
+   ============================================================ */
+:root{
+  --bg:#0a0d14;
+  --bg-grad:#0e131d;
+  --panel:#121823;
+  --panel-2:#161d2a;
+  --line:#243044;
+  --line-soft:#1b2433;
+  --txt:#dbe3ef;
+  --txt-dim:#8b97ac;
+  --txt-faint:#4f5a70;
+  --accent:#e8edf6;
+
+  --radius:14px;
+  --mono:'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --display:'Space Grotesk', system-ui, -apple-system, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:radial-gradient(1200px 700px at 70% -10%, var(--bg-grad), var(--bg)) fixed;
+  color:var(--txt);
+  font-family:var(--display);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.45;
+  padding:28px 22px 60px;
+}
+.wrap{max-width:1180px;margin:0 auto}
+
+/* ---------- Kopf ---------- */
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.32em;text-transform:uppercase;
+  color:var(--txt-faint);margin:0 0 10px;
+}
+h1{
+  font-weight:600;font-size:clamp(26px,4vw,40px);letter-spacing:-.02em;margin:0 0 8px;
+}
+h1 .thin{color:var(--txt-dim);font-weight:400}
+.sub{color:var(--txt-dim);font-size:14px;max-width:62ch;margin:0}
+.sub b{color:var(--txt);font-weight:500}
+
+/* ---------- Zustand-Filter (Chips) ---------- */
+.filters{margin:26px 0 18px}
+.filters .flabel{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--txt-faint);margin-bottom:9px;
+}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  font-family:var(--mono);font-size:12.5px;font-weight:500;
+  color:var(--txt-dim);background:var(--panel);
+  border:1px solid var(--line-soft);border-radius:999px;
+  padding:8px 15px;cursor:pointer;transition:.18s ease;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.chip:hover{color:var(--txt);border-color:var(--line)}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.55}
+.chip[aria-pressed="true"]{
+  color:#06090f;background:var(--accent);border-color:var(--accent);font-weight:600;
+}
+.chip[aria-pressed="true"] .dot{opacity:1}
+.chip:focus-visible{outline:2px solid #5b8cff;outline-offset:2px}
+
+/* band sub-filter sits a notch quieter */
+.bandfilters{margin-top:14px}
+.chip.band{font-size:11.5px;padding:6px 12px}
+.chip.band .swatch{width:9px;height:9px;border-radius:2px}
+.chip.band[aria-pressed="true"]{background:var(--b-color,#fff);border-color:var(--b-color,#fff);color:#06090f}
+
+/* ---------- Layout ---------- */
+.grid{display:grid;grid-template-columns:1.25fr .85fr;gap:22px;align-items:start;margin-top:6px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+
+.card{
+  background:linear-gradient(180deg,var(--panel),var(--panel-2));
+  border:1px solid var(--line-soft);border-radius:var(--radius);
+}
+.map-card{padding:14px 14px 6px;position:relative}
+.map-head{display:flex;justify-content:space-between;align-items:baseline;padding:4px 6px 10px}
+.map-head .t{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--txt-faint)}
+.map-head .count{font-family:var(--mono);font-size:11px;color:var(--txt-dim)}
+
+svg.head{width:100%;height:auto;display:block;touch-action:manipulation}
+
+/* head outline + facial features */
+.skull{fill:none;stroke:var(--line);stroke-width:1.4}
+.face{fill:none;stroke:var(--line);stroke-width:1.4}
+
+/* electrodes */
+.el{cursor:default}
+.el circle{stroke-width:1.3;transition:fill .22s ease, stroke .22s ease, r .22s ease;}
+.el text{font-family:var(--mono);font-size:5.3px;font-weight:500;text-anchor:middle;
+  dominant-baseline:central;pointer-events:none;transition:fill .22s ease}
+
+/* not available on this device */
+.el.na circle{fill:rgba(255,255,255,.012);stroke:var(--line-soft)}
+.el.na text{fill:var(--txt-faint)}
+/* reference electrodes */
+.el.ref circle{fill:rgba(150,160,180,.10);stroke:#3b485f;stroke-dasharray:2 2}
+.el.ref text{fill:var(--txt-dim)}
+/* recordable but not part of current state */
+.el.rec circle{fill:rgba(120,150,210,.06);stroke:#33425d}
+.el.rec text{fill:#7e8ba4}
+/* active (belongs to selected state & passes band filter) */
+.el.active{cursor:pointer}
+.el.active circle{fill:var(--c);stroke:var(--c);}
+.el.active text{fill:#06090f;font-weight:600}
+.el.active.glow circle{filter:drop-shadow(0 0 5px var(--c)) drop-shadow(0 0 11px var(--c))}
+/* dimmed because band filter excludes it (still in state) */
+.el.muted circle{fill:rgba(255,255,255,.02);stroke:#2c3a52}
+.el.muted text{fill:#5b6478}
+/* hover / focus emphasis */
+.el.active:hover circle, .el.active:focus-visible circle, .el.cross circle{stroke:#fff;stroke-width:2}
+.el.active:focus-visible{outline:none}
+
+@media(prefers-reduced-motion:reduce){
+  .el circle,.el text{transition:none}
+  .el.active.glow circle{filter:drop-shadow(0 0 4px var(--c))}
+}
+
+/* ---------- Info-Panel ---------- */
+.info{padding:20px 20px 22px;min-height:200px}
+.info .state-name{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+.info .state-sum{color:var(--txt-dim);font-size:13.5px;margin:0 0 18px}
+.info .empty{color:var(--txt-faint);font-size:13.5px;font-family:var(--mono)}
+
+.maplist{display:flex;flex-direction:column;gap:7px}
+.row{
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px;
+  padding:9px 11px;border:1px solid var(--line-soft);border-radius:10px;
+  background:rgba(255,255,255,.014);cursor:pointer;transition:.15s ease;
+}
+.row:hover,.row.cross{border-color:var(--b-color);background:rgba(255,255,255,.04)}
+.row .el-tag{font-family:var(--mono);font-weight:600;font-size:13px;color:var(--txt);min-width:34px}
+.row .meta{display:flex;flex-direction:column;gap:1px;min-width:0}
+.row .band{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--b-color)}
+.row .note{font-size:11.5px;color:var(--txt-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .trend{font-family:var(--mono);font-size:15px;line-height:1;color:var(--b-color);width:18px;text-align:center}
+
+.legend{margin-top:20px;border-top:1px solid var(--line-soft);padding-top:16px}
+.legend .lh{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--txt-faint);margin-bottom:10px}
+.legend .lrow{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:12px;color:var(--txt-dim)}
+.legend .swatch{width:11px;height:11px;border-radius:3px;flex:none}
+.legend .lrange{font-family:var(--mono);margin-left:auto;color:var(--txt-faint);font-size:11px}
+
+/* ---------- Tooltip ---------- */
+.tip{
+  position:fixed;z-index:50;pointer-events:none;opacity:0;transform:translateY(4px);
+  transition:opacity .12s ease, transform .12s ease;
+  width:230px;background:#0c111b;border:1px solid var(--t-color,#2a3650);
+  border:1px solid var(--t-color);border-radius:12px;padding:13px 14px;
+  box-shadow:0 16px 40px rgba(0,0,0,.55);
+}
+.tip.show{opacity:1;transform:translateY(0)}
+.tip .th{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.tip .tname{font-family:var(--mono);font-weight:600;font-size:14px;color:#fff}
+.tip .tband{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--t-color);
+  border:1px solid var(--t-color);border-radius:999px;padding:2px 9px}
+.tip .wave{width:100%;height:34px;margin:2px 0 10px;display:block}
+.tip .trange{font-family:var(--mono);font-size:11px;color:var(--txt-dim);margin-bottom:8px;
+  display:flex;align-items:center;gap:7px}
+.tip .trange .ar{color:var(--t-color);font-size:14px}
+.tip .tnote{font-size:12px;color:var(--txt);line-height:1.5}
+
+.foot{margin-top:30px;color:var(--txt-faint);font-family:var(--mono);font-size:11px;line-height:1.7}
+.foot b{color:var(--txt-dim);font-weight:500}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Emotiv Flex 2 · 32 Kanäle · 10-20-System</p>
+  <h1>Mentale Zustände <span class="thin">→ Elektroden-Mapping</span></h1>
+  <p class="sub">Wähle einen Zustand, um die dafür relevanten Elektroden hervorzuheben. <b>Über eine Elektrode fahren</b> zeigt das relevante Frequenzband und die Begründung. Gefüllt = vom Gerät erfassbar, gestrichelt = Referenz, blass = nicht belegt.</p>
+
+  <!-- ZUSTAND-FILTER -->
+  <div class="filters">
+    <div class="flabel">Zustand</div>
+    <div class="chips" id="state-chips"></div>
+
+    <div class="bandfilters" id="band-wrap" hidden>
+      <div class="flabel" style="margin:16px 0 9px">Frequenzband eingrenzen</div>
+      <div class="chips" id="band-chips"></div>
+    </div>
+  </div>
+
+  <!-- HAUPTBEREICH -->
+  <div class="grid">
+    <div class="card map-card">
+      <div class="map-head">
+        <span class="t">Topografie · Aufsicht</span>
+        <span class="count" id="active-count"></span>
+      </div>
+      <svg class="head" viewBox="-125 -125 250 252" id="map" role="img" aria-label="EEG-Elektroden-Kopfkarte"></svg>
+    </div>
+
+    <div class="card info" id="info"></div>
+  </div>
+
+  <p class="foot">
+    <b>Hinweis zur Methodik.</b> Bandgrenzen und Zuordnungen sind typische Literaturwerte und je nach Quelle leicht unterschiedlich. Gamma (&gt;30 Hz) ist mit diesem Setup stark EMG-anfällig; frontopolare Kanäle sind artefaktreich.<br>
+    <b>Erweitern:</b> Zustände, Bänder und Infofelder stehen unten im &lt;script&gt; in <b>BANDS</b> und <b>STATES</b> – dort ergänzen, der Rest baut sich automatisch.
+  </p>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<script>
+/* ============================================================
+   1) FREQUENZBÄNDER  – zentrale Definition
+   freq = repräsentative Frequenz (nur für die Wellen-Vorschau)
+   ============================================================ */
+const BANDS = {
+  delta: { label:"Delta", range:"0,5–4 Hz",  color:"#5b6cff", freq:2  },
+  theta: { label:"Theta", range:"4–7 Hz",    color:"#b46bff", freq:6  },
+  alpha: { label:"Alpha", range:"8–12 Hz",   color:"#2dd4bf", freq:10 },
+  mu:    { label:"Mu",    range:"8–13 Hz",   color:"#38bdf8", freq:11 },
+  smr:   { label:"SMR",   range:"12–15 Hz",  color:"#a3e635", freq:13 },
+  lowbeta: { label:"Low Beta",  range:"13–16 Hz", color:"#fbbf24", freq:15 },
+  highbeta:{ label:"High Beta", range:"16–30 Hz", color:"#f97316", freq:22 },
+  gamma:   { label:"Gamma",     range:"30–45 Hz", color:"#f8716a", freq:38 },
+};
+
+/* Trend-Symbole für die "trend"-Angabe einer Zuordnung */
+const TREND = { up:"↑", down:"↓", asym:"⇄", mix:"≈" };
+
+/* ============================================================
+   2) ZUSTÄNDE  – hier neue Zustände einfach ergänzen.
+   Jede Zuordnung: { el, band, trend, note }
+     el    = Elektrodenname (muss in ELECTRODES existieren & erfassbar sein)
+     band  = Schlüssel aus BANDS
+     trend = Schlüssel aus TREND (Richtung der Veränderung)
+     note  = freier Infotext (im Tooltip + in der Liste)
+   Weitere Infofelder lassen sich frei hinzufügen und unten im
+   Tooltip/Listen-Rendering ausgeben (siehe Kommentar "INFOFELDER").
+   ============================================================ */
+const STATES = [
+  {
+    id:"uebersicht",
+    label:"Übersicht",
+    summary:"Alle vom Gerät erfassbaren Elektroden ohne Zustandszuordnung.",
+    mappings:[]
+  },
+  {
+    id:"konzentration",
+    label:"Konzentration / Aufmerksamkeit",
+    summary:"Anhaltende, fokussierte Aufmerksamkeit. Leitgröße: frontaler Midline-Theta plus frontaler Beta.",
+    mappings:[
+      { el:"Fz",  band:"theta", trend:"up", note:"Frontal-Midline-Theta steigt mit anhaltender Aufmerksamkeit und kognitiver Kontrolle (ACC / medialer PFC)." },
+      { el:"FCz", band:"theta", trend:"up", note:"Zweiter Generator des Frontal-Midline-Theta; zusammen mit Fz auswerten." },
+      { el:"Cz",  band:"theta", trend:"up", note:"Basis für die Theta/Beta-Ratio als Aufmerksamkeitsindex (niedrig = fokussierter)." },
+      { el:"F3",  band:"lowbeta", trend:"up", note:"Erhöhte Low-Beta-Aktivität bei aktiver, fokussierter Verarbeitung (Engagement, nicht Stress)." },
+      { el:"F4",  band:"lowbeta", trend:"up", note:"Erhöhte Low-Beta-Aktivität bei aktiver, fokussierter Verarbeitung (Engagement, nicht Stress)." },
+    ]
+  },
+  {
+    id:"entspannung",
+    label:"Entspannung / Ruhe",
+    summary:"Entspannter Wachzustand. Leitgröße: Anstieg des posterioren Alpha, besonders bei geschlossenen Augen.",
+    mappings:[
+      { el:"O1",  band:"alpha", trend:"up", note:"Posteriorer Alpha steigt im entspannten Wachzustand, v.a. bei geschlossenen Augen." },
+      { el:"O2",  band:"alpha", trend:"up", note:"Posteriorer Alpha steigt im entspannten Wachzustand, v.a. bei geschlossenen Augen." },
+      { el:"POz", band:"alpha", trend:"up", note:"Okzipitoparietaler Alpha als sensibler Ruhe-Indikator." },
+      { el:"Pz",  band:"alpha", trend:"up", note:"Parietaler Alpha steigt bei nachlassender Aufmerksamkeit / Entspannung." },
+      { el:"P3",  band:"alpha", trend:"up", note:"Parietaler Alpha (links) – mit P4 für Seitenvergleich." },
+      { el:"P4",  band:"alpha", trend:"up", note:"Parietaler Alpha (rechts) – mit P3 für Seitenvergleich." },
+    ]
+  },
+  {
+    id:"belastung",
+    label:"Mentale Belastung / Arbeitsgedächtnis",
+    summary:"Kognitive Last (z.B. n-back). Leitgröße: frontaler Theta steigt, parietaler Alpha wird unterdrückt.",
+    mappings:[
+      { el:"Fz",  band:"theta", trend:"up",   note:"Frontal-Theta steigt mit Gedächtnis- und Aufgabenlast." },
+      { el:"FCz", band:"theta", trend:"up",   note:"Verstärkt mit Fz den Lasteffekt im Frontal-Midline-Theta." },
+      { el:"Pz",  band:"alpha", trend:"down", note:"Parietaler Alpha wird mit steigender Last unterdrückt (Event-Related Desynchronisation)." },
+      { el:"P3",  band:"alpha", trend:"down", note:"Alpha-Suppression (links) als Lastindikator." },
+      { el:"P4",  band:"alpha", trend:"down", note:"Alpha-Suppression (rechts) als Lastindikator." },
+    ]
+  },
+  {
+    id:"valenz",
+    label:"Emotionale Valenz (frontale Asymmetrie)",
+    summary:"Annäherung vs. Rückzug über die frontale Alpha-Asymmetrie. Index: ln(α F4) − ln(α F3).",
+    mappings:[
+      { el:"F3",  band:"alpha", trend:"asym", note:"Linksfrontaler Alpha. Weniger Alpha links = mehr Aktivität = Annäherung / positiver Affekt." },
+      { el:"F4",  band:"alpha", trend:"asym", note:"Rechtsfrontaler Alpha. Gegenpol des Asymmetrie-Index ln(α F4) − ln(α F3)." },
+      { el:"AF3", band:"alpha", trend:"asym", note:"Ergänzende frontale Ableitung links zur Stabilisierung des Asymmetriemaßes." },
+      { el:"AF4", band:"alpha", trend:"asym", note:"Ergänzende frontale Ableitung rechts zur Stabilisierung des Asymmetriemaßes." },
+    ]
+  },
+  {
+    id:"vigilanz",
+    label:"Vigilanz / Schläfrigkeit",
+    summary:"Nachlassende Wachheit. Leitgröße: diffuser Anstieg von Theta (und langsamem Alpha).",
+    mappings:[
+      { el:"Cz",  band:"theta", trend:"up", note:"Diffuser Theta-Anstieg als frühes Müdigkeitszeichen." },
+      { el:"Pz",  band:"theta", trend:"up", note:"Zentroparietaler Theta-Anstieg bei sinkender Vigilanz." },
+      { el:"O1",  band:"alpha", trend:"mix", note:"Verlangsamung des okzipitalen Alpha; Übergang Wachheit → Schläfrigkeit." },
+      { el:"O2",  band:"alpha", trend:"mix", note:"Verlangsamung des okzipitalen Alpha; Übergang Wachheit → Schläfrigkeit." },
+    ]
+  },
+  {
+    id:"smr",
+    label:"Ruhige Fokussierung (SMR)",
+    summary:"Wacher, aber motorisch ruhiger Zustand. Leitgröße: sensomotorischer Rhythmus über dem Motorkortex.",
+    mappings:[
+      { el:"C3",  band:"smr", trend:"up", note:"Sensomotorischer Rhythmus (links) – motorische Ruhe bei wachem Fokus." },
+      { el:"Cz",  band:"smr", trend:"up", note:"Zentraler SMR über dem Vertex." },
+      { el:"C4",  band:"smr", trend:"up", note:"Sensomotorischer Rhythmus (rechts)." },
+    ]
+  },
+  {
+    id:"motorik_rechts",
+    label:"Motorik rechts (Bewegung/Vorstellung)",
+    summary:"Bewegung oder Bewegungsvorstellung der rechten Körperseite. Aktiviert kontralateral den linken Motorkortex; Mu/Beta sinken während der Bewegung (ERD), danach Beta-Rebound (ERS).",
+    mappings:[
+      { el:"C3",  band:"mu", trend:"down", note:"Kontralateral (links) über dem Handareal: Mu-ERD während Bewegung/Vorstellung. Auch Beta (13–30 Hz) sinkt, mit Rebound nach Stopp. Primärelektrode." },
+      { el:"FC3", band:"mu", trend:"down", note:"Anterior/prämotorisch; verstärkt das Mu- und Beta-ERD-Muster über C3." },
+      { el:"CP3", band:"mu", trend:"down", note:"Posterior zum Handareal; ergänzt die räumliche Erfassung des ERD." },
+    ]
+  },
+  {
+    id:"motorik_links",
+    label:"Motorik links (Bewegung/Vorstellung)",
+    summary:"Bewegung oder Bewegungsvorstellung der linken Körperseite. Aktiviert kontralateral den rechten Motorkortex; Mu/Beta sinken während der Bewegung (ERD), danach Beta-Rebound (ERS).",
+    mappings:[
+      { el:"C4",  band:"mu", trend:"down", note:"Kontralateral (rechts) über dem Handareal: Mu-ERD während Bewegung/Vorstellung. Auch Beta (13–30 Hz) sinkt, mit Rebound nach Stopp. Primärelektrode." },
+      { el:"FC4", band:"mu", trend:"down", note:"Anterior/prämotorisch; verstärkt das Mu- und Beta-ERD-Muster über C4." },
+      { el:"CP4", band:"mu", trend:"down", note:"Posterior zum Handareal; ergänzt die räumliche Erfassung des ERD." },
+    ]
+  },
+  {
+    id:"motorik_beine",
+    label:"Motorik Beine / Füße",
+    summary:"Bewegung der unteren Extremitäten. Wegen des Homunkulus medial am Vertex repräsentiert (Cz); Mu sinkt (ERD).",
+    mappings:[
+      { el:"Cz",  band:"mu", trend:"down", note:"Vertex über dem Fuß-/Beinareal: Mu-ERD bei Bewegung der unteren Extremitäten. Primärelektrode." },
+      { el:"FCz", band:"mu", trend:"down", note:"Anterior zum Vertex; ergänzt das mediale ERD-Muster." },
+      { el:"CPz", band:"mu", trend:"down", note:"Posterior zum Vertex; ergänzt das mediale ERD-Muster." },
+    ]
+  },
+  {
+    id:"kreativ",
+    label:"Kreatives Denken (divergent)",
+    summary:"Divergentes, ideengenerierendes Denken. Leitgröße: Anstieg des Alpha über frontalen und parietalen Arealen – internale Aufmerksamkeit schirmt externe Reize ab.",
+    mappings:[
+      { el:"Fz", band:"alpha", trend:"up", note:"Frontaler Alpha steigt bei internaler, ideengenerierender Aufmerksamkeit (Abschirmung externer Reize)." },
+      { el:"F3", band:"alpha", trend:"up", note:"Frontaler Alpha (links) steigt während kreativer Ideenfindung." },
+      { el:"F4", band:"alpha", trend:"up", note:"Frontaler Alpha (rechts) steigt während kreativer Ideenfindung." },
+      { el:"Pz", band:"alpha", trend:"up", note:"Parietaler Alpha steigt – internaler Fokus statt externer Verarbeitung." },
+      { el:"P3", band:"alpha", trend:"up", note:"Parietaler Alpha (links) steigt bei divergentem Denken." },
+      { el:"P4", band:"alpha", trend:"up", note:"Parietaler Alpha (rechts) steigt bei divergentem Denken." },
+    ]
+  },
+  {
+    id:"excitement",
+    label:"Excitement / Arousal (Erregung)",
+    summary:"Plötzliche sympathische Aktivierung (Freude, Schreck, Fight-or-Flight): abrupter Anstieg hochfrequenter Aktivität bei Unterdrückung langsamer Wellen. Emotiv-Kompositmetrik – Elektroden sind eine Näherung an die mehrkanalige Berechnung.",
+    mappings:[
+      { el:"AF3", band:"highbeta", trend:"up", note:"Anterior-frontal (links): rascher High-Beta-Anstieg bei Arousal, Alpha wird unterdrückt. Emotiv misst real weiträumig (auch temporal T7/T8 – hier nicht belegt)." },
+      { el:"AF4", band:"highbeta", trend:"up", note:"Anterior-frontal (rechts): High-Beta-Anstieg als Arousal-Marker." },
+      { el:"F3",  band:"highbeta", trend:"up", note:"Frontal (links): hochfrequente Aktivität steigt phasisch an. Gamma (25–45 Hz) wäre theoretisch beteiligt, mit diesem Gerät aber unzuverlässig (EMG / Nyquist bei 128 Hz)." },
+      { el:"F4",  band:"highbeta", trend:"up", note:"Frontal (rechts): High-Beta-Anstieg bei plötzlicher Erregung." },
+    ]
+  },
+  {
+    id:"stress",
+    label:"Stress / Frustration",
+    summary:"Kognitive Überlastung: anhaltend hohes High-Beta ohne regulierende Alpha-Pausen. Leitgröße ist das dauerhafte frontozentrale High-Beta, gekoppelt mit einem Alpha-Abfall. Emotiv-Kompositmetrik – Elektroden sind eine Näherung.",
+    mappings:[
+      { el:"Fz",  band:"highbeta", trend:"up", note:"Frontale Mittellinie (Problemlösung): dauerhaft hohes High-Beta ohne regulierende Alpha-Pausen = Überlastung." },
+      { el:"F3",  band:"highbeta", trend:"up", note:"Frontal (links): anhaltendes, unreguliertes High-Beta bei Frustration." },
+      { el:"F4",  band:"highbeta", trend:"up", note:"Frontal (rechts): anhaltendes, unreguliertes High-Beta bei Frustration." },
+      { el:"FCz", band:"highbeta", trend:"up", note:"Frontozentral: kontinuierliche High-Beta-Aktivität, kennzeichnend für den Frustrations-/Überlastungszustand." },
+      { el:"Cz",  band:"highbeta", trend:"up", note:"Zentral: das hohe Beta-Niveau bleibt ohne die entspannenden Alpha-Pausen bestehen (signifikanter Alpha-Abfall)." },
+    ]
+  },
+];
+
+/* ============================================================
+   3) ELEKTRODEN  – Position (x rechts, y vorne; -1..1) + Typ
+      type: "rec" erfassbar | "ref" Referenz | "na" nicht belegt
+   Erfassbare/Referenz-Elektroden = farbig im hochgeladenen Plan.
+   ============================================================ */
+const REC = new Set("AF3 AF4 F3 F1 Fz F2 F4 FC3 FC1 FCz FC2 FC4 C3 C1 Cz C2 C4 CP3 CP1 CPz CP2 CP4 P3 P1 Pz P2 P4 PO3 POz PO4 O1 O2".split(" "));
+const REF = new Set(["TP9","TP10"]);
+
+const POS = {
+  Fpz:[0,0.97], Fp1:[-0.31,0.95], Fp2:[0.31,0.95],
+  AF7:[-0.55,0.80], AF3:[-0.28,0.78], AFz:[0,0.80], AF4:[0.28,0.78], AF8:[0.55,0.80],
+  F9:[-0.95,0.52], F7:[-0.66,0.60], F5:[-0.50,0.58], F3:[-0.34,0.57], F1:[-0.17,0.56], Fz:[0,0.56], F2:[0.17,0.56], F4:[0.34,0.57], F6:[0.50,0.58], F8:[0.66,0.60], F10:[0.95,0.52],
+  FT9:[-0.99,0.27], FT7:[-0.82,0.30], FC5:[-0.63,0.31], FC3:[-0.43,0.31], FC1:[-0.21,0.31], FCz:[0,0.31], FC2:[0.21,0.31], FC4:[0.43,0.31], FC6:[0.63,0.31], FT8:[0.82,0.30], FT10:[0.99,0.27],
+  T7:[-0.86,0], C5:[-0.65,0], C3:[-0.44,0], C1:[-0.22,0], Cz:[0,0], C2:[0.22,0], C4:[0.44,0], C6:[0.65,0], T8:[0.86,0],
+  TP9:[-0.99,-0.27], TP7:[-0.82,-0.30], CP5:[-0.63,-0.31], CP3:[-0.43,-0.31], CP1:[-0.21,-0.31], CPz:[0,-0.31], CP2:[0.21,-0.31], CP4:[0.43,-0.31], CP6:[0.63,-0.31], TP8:[0.82,-0.30], TP10:[0.99,-0.27],
+  P9:[-0.95,-0.52], P7:[-0.66,-0.60], P5:[-0.50,-0.58], P3:[-0.34,-0.57], P1:[-0.17,-0.56], Pz:[0,-0.56], P2:[0.17,-0.56], P4:[0.34,-0.57], P6:[0.50,-0.58], P8:[0.66,-0.60], P10:[0.95,-0.52],
+  PO9:[-0.78,-0.78], PO7:[-0.52,-0.78], PO3:[-0.27,-0.76], POz:[0,-0.78], PO4:[0.27,-0.76], PO8:[0.52,-0.78], PO10:[0.78,-0.78],
+  O9:[-0.50,-0.96], O1:[-0.28,-0.93], Oz:[0,-0.97], O2:[0.28,-0.93], O10:[0.50,-0.96],
+  Iz:[0,-1.15],
+};
+
+/* ===================== RENDERING ===================== */
+const SVG="http://www.w3.org/2000/svg", S=100;
+const map=document.getElementById("map");
+const tip=document.getElementById("tip");
+const info=document.getElementById("info");
+const stateChips=document.getElementById("state-chips");
+const bandChips=document.getElementById("band-chips");
+const bandWrap=document.getElementById("band-wrap");
+const activeCount=document.getElementById("active-count");
+
+let currentState=STATES[0];
+let bandFilter=null;            // null = alle Bänder
+const elNodes={};               // name -> <g>
+
+function elType(name){ return REC.has(name)?"rec":REF.has(name)?"ref":"na"; }
+
+/* ---- Kopf-Silhouette (Schädel, Nase, Ohren) ---- */
+function drawSkull(){
+  const c=document.createElementNS(SVG,"circle");
+  c.setAttribute("cx",0);c.setAttribute("cy",0);c.setAttribute("r",S);
+  c.setAttribute("class","skull");map.appendChild(c);
+  const nose=document.createElementNS(SVG,"path");
+  nose.setAttribute("d",`M -12 -${S-2} Q 0 -${S+16} 12 -${S-2}`);
+  nose.setAttribute("class","face");map.appendChild(nose);
+  const ear=(sx)=>{const p=document.createElementNS(SVG,"path");
+    p.setAttribute("d",`M ${sx*(S-2)} -16 Q ${sx*(S+11)} 0 ${sx*(S-2)} 16`);
+    p.setAttribute("class","face");map.appendChild(p);};
+  ear(1);ear(-1);
+}
+
+/* ---- Elektroden zeichnen ---- */
+function drawElectrodes(){
+  for(const name in POS){
+    const [x,y]=POS[name], cx=x*S, cy=-y*S, type=elType(name);
+    const g=document.createElementNS(SVG,"g");
+    g.setAttribute("class","el "+type);
+    g.setAttribute("tabindex", type==="na"?"-1":"0");
+    g.dataset.name=name;
+    const circle=document.createElementNS(SVG,"circle");
+    circle.setAttribute("cx",cx);circle.setAttribute("cy",cy);circle.setAttribute("r",7);
+    const t=document.createElementNS(SVG,"text");
+    t.setAttribute("x",cx);t.setAttribute("y",cy);t.textContent=name;
+    g.appendChild(circle);g.appendChild(t);
+    map.appendChild(g);
+    elNodes[name]=g;
+
+    g.addEventListener("mouseenter",()=>onElEnter(name));
+    g.addEventListener("mouseleave",hideTip);
+    g.addEventListener("focus",()=>onElEnter(name,true));
+    g.addEventListener("blur",hideTip);
+  }
+}
+
+/* ---- Zustand-Chips ---- */
+function buildStateChips(){
+  STATES.forEach(st=>{
+    const b=document.createElement("button");
+    b.className="chip";b.type="button";b.dataset.id=st.id;
+    b.setAttribute("aria-pressed", st===currentState);
+    b.innerHTML=`<span class="dot"></span>${st.label}`;
+    b.addEventListener("click",()=>selectState(st.id));
+    stateChips.appendChild(b);
+  });
+}
+
+/* ---- Band-Chips (abhängig vom Zustand) ---- */
+function buildBandChips(){
+  bandChips.innerHTML="";
+  const used=[...new Set(currentState.mappings.map(m=>m.band))];
+  if(used.length<=1){ bandWrap.hidden=true; return; }
+  bandWrap.hidden=false;
+  const all=document.createElement("button");
+  all.className="chip band";all.type="button";
+  all.setAttribute("aria-pressed", bandFilter===null);
+  all.textContent="Alle Bänder";
+  all.addEventListener("click",()=>{bandFilter=null;render();});
+  bandChips.appendChild(all);
+  used.forEach(bk=>{
+    const B=BANDS[bk], b=document.createElement("button");
+    b.className="chip band";b.type="button";b.style.setProperty("--b-color",B.color);
+    b.setAttribute("aria-pressed", bandFilter===bk);
+    b.innerHTML=`<span class="swatch" style="background:${B.color}"></span>${B.label}`;
+    b.addEventListener("click",()=>{bandFilter=(bandFilter===bk?null:bk);render();});
+    bandChips.appendChild(b);
+  });
+}
+
+function selectState(id){
+  currentState=STATES.find(s=>s.id===id)||STATES[0];
+  bandFilter=null;
+  [...stateChips.children].forEach(c=>c.setAttribute("aria-pressed", c.dataset.id===id));
+  buildBandChips();
+  render();
+}
+
+/* ---- aktuelle aktive Zuordnungen (nach Bandfilter) ---- */
+function activeMappings(){
+  return currentState.mappings.filter(m=>!bandFilter||m.band===bandFilter);
+}
+
+/* ---- Karte + Panel neu aufbauen ---- */
+function render(){
+  const mappedAll=new Map(currentState.mappings.map(m=>[m.el,m]));
+  const active=new Map(activeMappings().map(m=>[m.el,m]));
+
+  for(const name in elNodes){
+    const g=elNodes[name], type=elType(name);
+    g.className.baseVal="el "+type;
+    g.style.removeProperty("--c");
+    if(active.has(name)){
+      const B=BANDS[active.get(name).band];
+      g.style.setProperty("--c",B.color);
+      g.classList.add("active","glow");
+    }else if(mappedAll.has(name)){
+      g.classList.add("muted");           // im Zustand, aber per Bandfilter ausgeblendet
+    }
+  }
+
+  const n=active.size;
+  activeCount.textContent = currentState.mappings.length
+    ? `${n} Elektrode${n===1?"":"n"} aktiv`
+    : `${REC.size} erfassbar`;
+
+  renderInfo(active);
+  buildLegend();
+}
+
+/* ---- Info-Panel ---- */
+function renderInfo(active){
+  let html=`<p class="state-name">${currentState.label}</p>
+            <p class="state-sum">${currentState.summary}</p>`;
+  const list=activeMappings();
+  if(!list.length){
+    html+=`<p class="empty">› Keine Zuordnung. Wähle oben einen Zustand, um Elektroden hervorzuheben.</p>`;
+  }else{
+    html+=`<div class="maplist">`;
+    list.forEach(m=>{
+      const B=BANDS[m.band];
+      /* INFOFELDER: hier weitere m.<feld> ausgeben, falls ergänzt */
+      html+=`<div class="row" data-el="${m.el}" style="--b-color:${B.color}">
+        <span class="el-tag">${m.el}</span>
+        <span class="meta">
+          <span class="band">${B.label} · ${B.range}</span>
+          <span class="note">${m.note}</span>
+        </span>
+        <span class="trend" title="Trend">${TREND[m.trend]||""}</span>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  info.innerHTML=html;
+
+  /* Liste <-> Karte Cross-Highlight */
+  info.querySelectorAll(".row").forEach(r=>{
+    const g=elNodes[r.dataset.el];
+    r.addEventListener("mouseenter",()=>{g&&g.classList.add("cross");r.classList.add("cross");onElEnter(r.dataset.el);});
+    r.addEventListener("mouseleave",()=>{g&&g.classList.remove("cross");r.classList.remove("cross");hideTip();});
+  });
+}
+
+/* ---- Legende (alle in BANDS definierten Bänder) ---- */
+function buildLegend(){
+  let html=`<div class="legend"><div class="lh">Frequenzbänder</div>`;
+  for(const k in BANDS){const B=BANDS[k];
+    html+=`<div class="lrow"><span class="swatch" style="background:${B.color}"></span>${B.label}<span class="lrange">${B.range}</span></div>`;
+  }
+  html+=`</div>`;
+  info.insertAdjacentHTML("beforeend",html);
+}
+
+/* ---- Tooltip + Wellen-Vorschau ---- */
+function wavePath(freq,w,h){
+  const cycles=Math.max(1,Math.min(9,Math.round(freq/2.6)));
+  const mid=h/2, amp=h*0.36, steps=120;
+  let d=`M 0 ${mid}`;
+  for(let i=1;i<=steps;i++){
+    const x=w*i/steps, y=mid-Math.sin(i/steps*cycles*2*Math.PI)*amp;
+    d+=` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+  }
+  return d;
+}
+function onElEnter(name,fromFocus){
+  const m=currentState.mappings.find(x=>x.el===name && (!bandFilter||x.band===bandFilter));
+  if(!m) return;                                  // nur aktive Elektroden haben einen Tooltip
+  const B=BANDS[m.band];
+  tip.style.setProperty("--t-color",B.color);
+  tip.innerHTML=`
+    <div class="th"><span class="tname">${name}</span><span class="tband">${B.label}</span></div>
+    <svg class="wave" viewBox="0 0 200 34" preserveAspectRatio="none">
+      <path d="${wavePath(B.freq,200,34)}" fill="none" stroke="${B.color}" stroke-width="2"/>
+    </svg>
+    <div class="trange">${B.range}<span class="ar">${TREND[m.trend]||""}</span></div>
+    <div class="tnote">${m.note}</div>`;
+  positionTip(name);
+  tip.classList.add("show");
+}
+function positionTip(name){
+  const g=elNodes[name], r=g.getBoundingClientRect();
+  let left=r.right+12, top=r.top+r.height/2-tip.offsetHeight/2;
+  const tw=240;
+  if(left+tw>window.innerWidth-10) left=r.left-tw-2;
+  top=Math.max(10,Math.min(top,window.innerHeight-tip.offsetHeight-10));
+  tip.style.left=left+"px";tip.style.top=top+"px";
+}
+function hideTip(){tip.classList.remove("show");}
+
+/* ===================== INIT ===================== */
+drawSkull();
+drawElectrodes();
+buildStateChips();
+buildBandChips();
+render();
+</script>
+</body>
+</html>
