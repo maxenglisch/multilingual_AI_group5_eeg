@@ -1,17 +1,19 @@
-# Anleitung: Zustandsanalyse (Bandleistung)
+# Anleitung: EEG-Pipeline (MRCP und Zustandsanalyse)
 
-Diese Anleitung beschreibt die Zustandsanalyse, die auf der MRCP-Pipeline
-aufsetzt. Sie bewertet die mentalen Zustände aus `config/states.json` anhand
-der Bandleistung des EEG und läuft auf zwei Datensätzen:
+Die Pipeline hat zwei Analysen, die sich Einlesen, Kanalprüfung, Umrechnung
+µV → V und Common Average Reference teilen:
 
-| Datensatz | Konfiguration | Wofür |
+| Analyse | Was sie macht | Abschnitt |
 |---|---|---|
-| Movement-Related EEG/EMG (rechter Faustschluss, 40 Probanden) | `config/dataset.yaml` (Standard) | echte Daten; prüft die Motorik-Signatur und den Seitenvergleich C3/C4 |
-| Synthetischer Emotionsdatensatz (7 Zustände × 10 s) | `config/synthetic_emotion.yaml` | Demonstration, dass die Pipeline von der CSV bis zur Oberfläche durchläuft |
+| `mrcp` | Movement-Related Cortical Potentials im Zeitbereich (0,1–1 Hz) mit EMG-Abgleich | 3 |
+| `states` | Bewertung der mentalen Zustände aus `config/states.json` über die Bandleistung | 4 bis 10 |
 
-Einlesen, Kanalprüfung, Umrechnung µV → V und Common Average Reference kommen
-unverändert aus der MRCP-Pipeline. Die Zustandsanalyse ist ein zweiter Zweig
-danach.
+Sie läuft auf zwei Datensätzen:
+
+| Datensatz | Konfiguration | Analysen | Wofür |
+|---|---|---|---|
+| Movement-Related EEG/EMG (rechter Faustschluss, 40 Probanden) | `config/dataset.yaml` (Standard) | `mrcp`, `states` | echte Daten; MRCP, Motorik-Signatur und Seitenvergleich C3/C4 |
+| Synthetischer Emotionsdatensatz (7 Zustände × 10 s) | `config/synthetic_emotion.yaml` | `states` | Demonstration, dass die Zustandsanalyse von der CSV bis zur Oberfläche durchläuft |
 
 ---
 
@@ -33,38 +35,175 @@ C:\Users\lawan\Downloads\EEG and EMG Dataset for Analyzing Movement-Related\EEG 
 
 Die Rohdaten werden nur gelesen, nie verändert oder kopiert.
 
+Alle Befehle in dieser Anleitung werden im Repository-Ordner ausgeführt. In
+den Beispielen steht `<SUBJECTS>` für den Pfad oben (in Anführungszeichen,
+weil er Leerzeichen enthält).
+
 ---
 
-## 2. Ausführen
+## 2. Beide Analysen zusammen
 
-Alle Befehle werden im Repository-Ordner ausgeführt. In den Beispielen steht
-`<SUBJECTS>` für den Pfad oben (in Anführungszeichen, weil er Leerzeichen
-enthält).
-
-### Ein Proband
-
-```powershell
-python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --subject SUBJECT01
-```
-
-Führt MRCP- und Zustandsanalyse aus und schreibt für jede Aufnahme eine
-Playback-JSON für die Abspielansicht. Dauer: wenige Sekunden.
-
-### Alle Probanden mit Gruppenbericht
+Ohne `--analysis` laufen alle Analysen, die unter `analyses` in der
+Konfiguration stehen – für `config/dataset.yaml` also MRCP und Zustände:
 
 ```powershell
 python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --all-subjects
 ```
 
-Dauer: etwa 2 Minuten für beide Analysen. Playback-JSONs werden im
-Gruppenlauf nicht geschrieben (40 × 5 Dateien), außer mit
-`--make-playback true`.
+Dauer: etwa 2 Minuten für 40 Probanden. Mit `--analysis mrcp` oder
+`--analysis states` läuft nur eine der beiden.
 
-Ausgewählte Probanden:
+### Alle Optionen
+
+| Option | Analyse | Bedeutung |
+|---|---|---|
+| `--config <datei>` | beide | Datensatz-Konfiguration; ohne Angabe `config/dataset.yaml` |
+| `--data-dir <ordner>` | beide | Ordner `SUBJECTS` des MRCP-Datensatzes; beim synthetischen Datensatz optional |
+| `--output-dir <ordner>` | beide | Zielordner, üblich `outputs` |
+| `--subject X` / `--subjects X Y` / `--all-subjects` | beide | ein, mehrere oder alle Probanden; schließen sich gegenseitig aus |
+| `--analysis mrcp\|states\|all` | beide | welche Analyse; ohne Angabe die unter `analyses` in der Konfiguration |
+| `--dry-run` | mrcp | nur Inventar und Diagnose, ohne Filtern und Plotten; die Zustandsanalyse wird übersprungen |
+| `--make-video [true]` | mrcp | Animation aus Wellenform, Kopfkarte und EMG; nur mit `--subject` |
+| `--video-fps <n>` | mrcp | Bildrate der Animation (Standard 10) |
+| `--save-fif true` | mrcp | MNE-Objekte als FIF speichern |
+| `--make-motorik-barcharts` | mrcp | Motorik-Balkendiagramme aus vorhandenen Gruppentabellen, ohne Rohdaten |
+| `--make-playback true\|false` | states | Playback-JSON je Aufnahme; ohne Angabe nur bei einem einzelnen Probanden |
+
+---
+
+## 3. MRCP-Analyse
+
+Die MRCP-Analyse (von Jinghao) mittelt das EEG um den Bewegungsbeginn
+(Trigger 7711, −2 bis +2 s) nach CAR und einem Butterworth-Bandpass
+0,1–1 Hz, extrahiert Merkmale je Epoche und Kanal und gleicht das EEG mit der
+EMG-Hüllkurve ab.
+
+### Befehle
+
+Ein Proband:
 
 ```powershell
-python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --subjects SUBJECT01 SUBJECT02 SUBJECT03
+python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --subject SUBJECT01 --analysis mrcp
 ```
+
+Alle Probanden mit Gruppenbericht:
+
+```powershell
+python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --all-subjects --analysis mrcp
+```
+
+Ausgewählte Probanden, ebenfalls mit Gruppenbericht:
+
+```powershell
+python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --subjects SUBJECT01 SUBJECT02 --analysis mrcp
+```
+
+Nur prüfen, ohne Filtern und Plotten (Inventar, Kanäle, Trigger):
+
+```powershell
+python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --dry-run
+```
+
+Mit Animation (nur für einen Probanden):
+
+```powershell
+python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --subject SUBJECT01 --analysis mrcp --make-video true
+```
+
+Mit gespeicherten MNE-Objekten:
+
+```powershell
+python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --subject SUBJECT01 --analysis mrcp --save-fif true
+```
+
+Motorik-Balkendiagramme aus den Tabellen eines früheren Gruppenlaufs (liest
+keine Rohdaten, braucht kein `--data-dir`):
+
+```powershell
+python -m src.main --output-dir outputs --make-motorik-barcharts
+```
+
+### Ergebnisse
+
+```text
+outputs\subject01\
+├─ reports\mrcp_report.html        Bericht – hier anfangen
+├─ figures\  raw_eeg, electrode_montage, mrcp_9_channels, mrcp_grand_average,
+│            emg_movement_locked, eeg_emg_alignment (.png)
+├─ tables\   dataset_inventory, missing_pairs, channel_diagnostics, events,
+│            trigger_summary, mrcp_epoch_features (.csv)
+├─ logs\     pipeline.log, warnings.txt
+├─ videos\   mrcp_eeg_emg_animation.gif / .mp4        mit --make-video
+└─ fif\      raw_original, raw_car, raw_mrcp_filtered (.fif)   mit --save-fif
+
+outputs\group_analysis\
+├─ reports\group_mrcp_report.html  Gruppenbericht (interaktiv)
+├─ tables\   subject_qc_summary, recording_qc_summary, mrcp_epoch_features,
+│            mrcp_subject_channel_summary, eeg_emg_latency_features,
+│            group_mrcp_timeseries, valid_motor_events_per_subject,
+│            most_frequent_mrcp_channel, mrcp_region_frequency (.csv)
+├─ figures\  valid/dropped_epochs_per_subject, recordings_per_subject,
+│            group_mrcp_selected_channels, group_mrcp_grand_average,
+│            group_mrcp_left_vs_midline_vs_right, Motorik-Balkendiagramme (.png)
+└─ logs\warnings.txt
+```
+
+Die Animation wird immer als GIF geschrieben; ein MP4 entsteht zusätzlich nur,
+wenn `imageio` MP4 schreiben kann.
+
+### Wichtig zu wissen
+
+- **Ein Einzelproband-Lauf (`--subject`) wertet nur die erste gültige Aufnahme
+  voll aus.** Alle 5 Trials werden inventarisiert; gefiltert, epochiert und
+  geplottet wird aber nur der erste. Die Gruppenanalyse (`--subjects` oder
+  `--all-subjects`) nutzt alle Trials jedes Probanden. Für belastbare
+  MRCP-Ergebnisse eines einzelnen Probanden deshalb `--subjects SUBJECT01`
+  verwenden.
+- **Pro Datei fehlt immer eine Epoche.** Jede Datei beginnt direkt mit dem
+  ersten Durchgang; der Bewegungsbeginn liegt nach etwa 1,2 s, und das Fenster
+  ab −2 s ragt vor den Dateianfang. Daher 45 statt 50 Epochen je Proband.
+- Gruppenmittel werden aus den Probandenmitteln gebildet, damit Probanden mit
+  mehr gültigen Epochen nicht stärker zählen.
+- `--make-video` ist im Gruppenlauf abgeschaltet.
+
+### Einstellungen
+
+In `config/dataset.yaml`:
+
+| Block | Inhalt |
+|---|---|
+| `eeg` | Abtastrate 128 Hz, Zuordnung der Spalten `2`–`33` zu den 32 Elektroden, ausgeschlossene Spalten |
+| `emg` | Abtastrate 440 Hz, Hüllkurve, Erkennung des EMG-Beginns |
+| `triggers` / `trigger_codes` | 768 Trial-Start, 771 Vorbereitung, 7711 Bewegungsbeginn, 7712 Bewegungsende, 1000 Trial-Ende, 32766 Sitzungsgrenze |
+| `epochs` | Zeitfenster für Baseline, vor, während und nach der Bewegung |
+| `mrcp` | Kanäle, Regionen links/Mitte/rechts, Bandpass 0,1–1 Hz, Ausrichtung auf `movement` (7711) oder `preparation` (771) |
+
+`src/config.py` prüft diese Werte beim Start streng: eine andere Abtastrate,
+unvollständige Trigger-Codes oder eine Spaltenzuordnung, die nicht zu den
+Kanalnamen passt, brechen mit einer Fehlermeldung ab.
+
+---
+
+## 4. Zustandsanalyse ausführen
+
+### Ein Proband
+
+```powershell
+python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --subject SUBJECT01 --analysis states
+```
+
+Schreibt für jede Aufnahme eine Playback-JSON für die Abspielansicht. Anders
+als die MRCP-Analyse wertet die Zustandsanalyse auch hier alle Trials aus.
+Dauer: wenige Sekunden.
+
+### Alle Probanden mit Gruppenbericht
+
+```powershell
+python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --all-subjects --analysis states
+```
+
+Dauer: unter einer Minute. Playback-JSONs werden im Gruppenlauf nicht
+geschrieben (40 × 5 Dateien), außer mit `--make-playback true`.
 
 ### Synthetischer Datensatz
 
@@ -75,29 +214,9 @@ python -m src.main --config config/synthetic_emotion.yaml --output-dir outputs
 Kein `--data-dir` nötig: die Datei `synthetic_emotion_eeg_raw.csv` liegt im
 Repository. Für diesen Datensatz gibt es nur die Zustandsanalyse.
 
-### Nur eine der beiden Analysen
-
-```powershell
-python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --subject SUBJECT01 --analysis states
-python -m src.main --data-dir "<SUBJECTS>" --output-dir outputs --subject SUBJECT01 --analysis mrcp
-```
-
-### Alle Optionen
-
-| Option | Bedeutung |
-|---|---|
-| `--config <datei>` | Datensatz-Konfiguration; ohne Angabe `config/dataset.yaml` |
-| `--data-dir <ordner>` | Ordner `SUBJECTS` des MRCP-Datensatzes; beim synthetischen Datensatz optional |
-| `--output-dir <ordner>` | Zielordner, üblich `outputs` |
-| `--subject X` / `--subjects X Y` / `--all-subjects` | ein, mehrere oder alle Probanden; schließen sich gegenseitig aus |
-| `--analysis mrcp\|states\|all` | welche Analyse; ohne Angabe die unter `analyses` in der Konfiguration |
-| `--make-playback true\|false` | Playback-JSON je Aufnahme; ohne Angabe nur bei einem einzelnen Probanden |
-| `--dry-run` | nur Inventar und Diagnose; die Zustandsanalyse wird übersprungen |
-| `--make-video`, `--save-fif`, `--make-motorik-barcharts` | Optionen der MRCP-Analyse, siehe `README.md` |
-
 ---
 
-## 3. Wo die Ergebnisse liegen
+## 5. Ergebnisse der Zustandsanalyse
 
 ```text
 outputs\
@@ -132,7 +251,7 @@ Die beiden Lateralisierungstabellen gibt es nur für den MRCP-Datensatz.
 
 ---
 
-## 4. Abspielansicht
+## 6. Abspielansicht
 
 1. `eeg_zustaende_playback.html` im Browser öffnen (Doppelklick genügt).
 2. **Messung laden** → eine Datei aus `outputs\<proband>\states\playback\` wählen.
@@ -150,7 +269,7 @@ Bänder zu welchem Zustand gehören.
 
 ---
 
-## 5. Ergebnisse lesen
+## 7. Ergebnisse der Zustandsanalyse lesen
 
 **Score:** Jede Zuordnung in `states.json` (Elektrode, Band, Richtung) wird als
 z-Wert gegen die Ruheabschnitte derselben Aufnahme gemessen, mit der erwarteten
@@ -186,7 +305,7 @@ beidseitig gleich (Mu `C3-C4` +0,01 dB, p = 0,94). `motorik_rechts` steht in
 
 ---
 
-## 6. Konfiguration anpassen
+## 8. Konfiguration der Zustandsanalyse
 
 Alle Einstellungen der Zustandsanalyse stehen im Block `states:` der
 Datensatz-Konfiguration.
@@ -222,7 +341,7 @@ unter `expected_states` in `config/synthetic_emotion.yaml`.
 
 ---
 
-## 7. Zustände ändern oder ergänzen
+## 9. Zustände ändern oder ergänzen
 
 1. Zustand in `config/states.json` eintragen: `id`, `label`, `summary` und
    `mappings` mit je `el` (Elektrode), `band` (Schlüssel aus `bands`), `trend`
@@ -237,7 +356,7 @@ müssen übereinstimmen.
 
 ---
 
-## 8. Einen weiteren Datensatz anbinden
+## 10. Einen weiteren Datensatz anbinden
 
 1. In `src/adapters.py` eine Klasse mit `subjects()` und `recordings(subject)`
    anlegen. `recordings` liefert je Aufnahme `(key, Recording, None)` oder im
@@ -255,7 +374,7 @@ dann ohne weitere Änderungen.
 
 ---
 
-## 9. Tests
+## 11. Tests
 
 ```powershell
 python -m pytest
@@ -267,7 +386,7 @@ Datensatz und der Abgleich `states.json` ↔ HTML.
 
 ---
 
-## 10. Häufige Meldungen
+## 12. Häufige Meldungen
 
 | Meldung | Ursache |
 |---|---|

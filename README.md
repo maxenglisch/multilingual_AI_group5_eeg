@@ -121,9 +121,9 @@ more usable epochs do not receive greater weight.
 
 ## Band-power state analysis
 
-A step-by-step guide in German (setup, commands, outputs, reading the results,
-configuration, extending states and datasets, common messages) is in
-[docs/ANLEITUNG_ZUSTANDSANALYSE.md](docs/ANLEITUNG_ZUSTANDSANALYSE.md).
+A step-by-step guide in German for both analyses (setup, commands, outputs,
+reading the results, configuration, extending states and datasets, common
+messages) is in [docs/ANLEITUNG.md](docs/ANLEITUNG.md).
 
 `python -m src.main` runs every analysis listed under `analyses` in the config;
 for `config/dataset.yaml` that is `mrcp` and `states`. Select one with
