@@ -1,9 +1,16 @@
 # Integrated Movement-Related EEG/EMG MRCP Pipeline
 
 This is the integrated successor to the old `002/eeg_project` prototype. The
-default and only active pipeline analyzes the public right-hand fist-closure
-Movement-Related EEG/EMG dataset. It is **not an emotion-recognition pipeline**
-and the dataset contains no emotion labels.
+default dataset is the public right-hand fist-closure Movement-Related EEG/EMG
+dataset. It is **not an emotion-recognition pipeline** and the dataset contains
+no emotion labels.
+
+Two analyses share its loading, channel validation, unit conversion and CAR:
+
+- `mrcp` - the original time-domain MRCP/EMG pipeline described below.
+- `states` - band-power state scoring against `config/states.json`, see
+  [Band-power state analysis](#band-power-state-analysis). It also runs on the
+  synthetic demonstration dataset in the repository root.
 
 The raw CSV files are read-only inputs. They are never renamed, moved, rewritten
 or copied into this project. Pass the existing D-drive folder with `--data-dir`.
@@ -111,6 +118,71 @@ per-recording QC, epoch-level MRCP features, EEG-EMG latency features,
 subject-weighted group timeseries, static PNGs, and an interactive HTML report.
 Group means are calculated from subject-level averages so participants with
 more usable epochs do not receive greater weight.
+
+## Band-power state analysis
+
+`python -m src.main` runs every analysis listed under `analyses` in the config;
+for `config/dataset.yaml` that is `mrcp` and `states`. Select one with
+`--analysis mrcp|states|all`.
+
+```powershell
+# MRCP dataset, one subject: tables, report and playback JSON per recording
+python -m src.main --data-dir "D:\Uni\10\MUlti\EEG and EMG Dataset for Analyzing Movement-Related\SUBJECTS" --output-dir outputs --subject SUBJECT01 --analysis states
+
+# all subjects, with a group report
+python -m src.main --data-dir "D:\Uni\10\MUlti\EEG and EMG Dataset for Analyzing Movement-Related\SUBJECTS" --output-dir outputs --all-subjects --analysis states
+
+# synthetic demonstration data from the repository root (no --data-dir needed)
+python -m src.main --config config/synthetic_emotion.yaml --output-dir outputs
+```
+
+Per recording, `src/state_analysis.py`:
+
+1. loads it through a dataset adapter (`src/adapters.py`). The MRCP adapter
+   uses `diagnose_eeg` and `make_raw` unchanged, so the column mapping and the
+   uV to V conversion are exactly the MRCP pipeline's;
+2. applies CAR and a 1-45 Hz band-pass (`preprocess_bandpower`). The MRCP
+   0.1-1 Hz filter would remove every band. Both branches share
+   `zero_phase_bandpass`, so MRCP results are unchanged;
+3. computes band power per 1 s Hann window every 0.125 s for the eight bands in
+   `config/states.json` (`src/bandpower.py`). A channel is rejected in a window
+   above 150 uV peak-to-peak or below 0.5 uV standard deviation; a window is
+   rejected when more than 25 % of its channels are;
+4. scores every state as a signed z-value against the resting sections of the
+   same recording (`src/states.py`) for each labelled section.
+
+Sections come from the config. For the MRCP dataset they are cut between
+trigger codes: `rest` (1000 to 771, the baseline), `preparation` (771 to 7711),
+`movement` (7711 to 7712, expected state `motorik_rechts`) and
+`post_movement` (7712 to 1000). The synthetic dataset has one section per
+`state_id` run; `neutral_baseline` is the baseline.
+
+Outputs go to `outputs/<subject>/states/` and, for several subjects,
+`outputs/group_analysis/states/`:
+
+```text
+tables/    state_segment_scores.csv   ranking and z per section
+           state_accuracy.csv         how often the expected state ranks first
+           state_top_counts.csv       top-ranked state per section label
+           motor_lateralization*.csv  movement minus rest in dB, C3/C4 etc.
+figures/   lateralization_<band>_C3-C4.png
+reports/   states_report.html
+playback/  <recording>.json           for eeg_zustaende_playback.html
+```
+
+Playback JSON is written for single-subject runs; use `--make-playback true`
+for batches. Open `eeg_zustaende_playback.html`, choose **Messung laden** and
+pick a file from `playback/`. The `BANDS` and `STATES` blocks of that page must
+match `config/states.json`; `tests/test_states_sync.py` checks this.
+
+The motor lateralization table compares movement with rest per hemisphere.
+For right-hand movement, stronger desynchronisation is expected over C3 than
+over C4, so a negative C3-C4 index across subjects is consistent with the
+configured column mapping, and a consistently positive one would point to
+swapped hemispheres.
+
+The synthetic dataset is built from the same signatures that are scored, so a
+perfect match there only shows that the pipeline runs end to end.
 
 ## Optional format adapters
 

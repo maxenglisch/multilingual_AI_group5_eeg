@@ -1,0 +1,42 @@
+dataset:
+  name: synthetic_emotion
+  adapter: synthetic_emotion
+  title: Synthetic emotion demo (7 states x 10 s)
+# Demonstration data only - see README_synthetic_emotion_dataset.txt. It has
+# no movement triggers, so only the band-power state analysis applies.
+analyses: [states]
+# Relative to the repository root unless --data-dir points elsewhere.
+source:
+  file: synthetic_emotion_eeg_raw.csv
+  label_column: state_id
+  trigger_column: trigger_code
+eeg:
+  sampling_rate: 128.0
+  input_unit: uV
+  mne_unit: V
+  expected_channel_count: 32
+  channel_names: [AF3, AF4, F3, F1, Fz, F2, F4, FC3, FC1, FCz, FC2, FC4, C3, C1, Cz, C2, C4, CP3, CP1, CPz, CP2, CP4, P3, P1, Pz, P2, P4, PO3, POz, PO4, O1, O2]
+states:
+  definitions: states.json
+  bandpass: [1.0, 45.0]
+  butterworth_order: 4
+  notch_hz: null
+  window_s: 1.0
+  step_s: 0.125
+  playback_step_s: 0.25
+  quality_gate:
+    max_ptp_uv: 150.0
+    min_std_uv: 0.5
+    max_bad_channel_fraction: 0.25
+    min_good_frame_fraction: 0.5
+  # One section per contiguous run of label_column. The expected state is the
+  # html_state_id that synthetic_emotion_dataset.json assigns to each label.
+  baseline_labels: [neutral_baseline]
+  expected_states:
+    neutral_baseline: null
+    freude_positive_valenz: valenz
+    negative_valenz_rueckzug: valenz
+    excitement_arousal: excitement
+    stress_frustration_synth: stress
+    entspannung_ruhe_synth: entspannung
+    fokus_engagement_synth: konzentration

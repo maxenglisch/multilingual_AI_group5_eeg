@@ -1,0 +1,460 @@
+{
+  "version": 2,
+  "note": "Single source of the state definitions for Python (src/states.py) and eeg_zustaende_playback.html. The BANDS and STATES blocks of the HTML must match; tests/test_states_sync.py checks this. Band power is computed from the raw EEG, so every band here is measured directly - delta only from the high-pass edge (states.bandpass) upwards.",
+  "bands": {
+    "delta": {
+      "label": "Delta",
+      "range": "0,5–4 Hz",
+      "lo": 0.5,
+      "hi": 4.0,
+      "color": "#5b6cff"
+    },
+    "theta": {
+      "label": "Theta",
+      "range": "4–7 Hz",
+      "lo": 4.0,
+      "hi": 7.0,
+      "color": "#b46bff"
+    },
+    "alpha": {
+      "label": "Alpha",
+      "range": "8–12 Hz",
+      "lo": 8.0,
+      "hi": 12.0,
+      "color": "#2dd4bf"
+    },
+    "mu": {
+      "label": "Mu",
+      "range": "8–13 Hz",
+      "lo": 8.0,
+      "hi": 13.0,
+      "color": "#38bdf8"
+    },
+    "smr": {
+      "label": "SMR",
+      "range": "12–15 Hz",
+      "lo": 12.0,
+      "hi": 15.0,
+      "color": "#a3e635"
+    },
+    "lowbeta": {
+      "label": "Low Beta",
+      "range": "13–16 Hz",
+      "lo": 13.0,
+      "hi": 16.0,
+      "color": "#fbbf24"
+    },
+    "highbeta": {
+      "label": "High Beta",
+      "range": "16–30 Hz",
+      "lo": 16.0,
+      "hi": 30.0,
+      "color": "#f97316"
+    },
+    "gamma": {
+      "label": "Gamma",
+      "range": "30–45 Hz",
+      "lo": 30.0,
+      "hi": 45.0,
+      "color": "#f8716a"
+    }
+  },
+  "states": [
+    {
+      "id": "uebersicht",
+      "label": "Übersicht",
+      "summary": "Alle vom Gerät erfassbaren Elektroden ohne Zustandszuordnung.",
+      "mappings": []
+    },
+    {
+      "id": "konzentration",
+      "label": "Konzentration / Aufmerksamkeit",
+      "summary": "Anhaltende, fokussierte Aufmerksamkeit. Leitgröße: frontaler Midline-Theta plus frontaler Beta.",
+      "mappings": [
+        {
+          "el": "Fz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Frontal-Midline-Theta steigt mit anhaltender Aufmerksamkeit und kognitiver Kontrolle (ACC / medialer PFC)."
+        },
+        {
+          "el": "FCz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Zweiter Generator des Frontal-Midline-Theta; zusammen mit Fz auswerten."
+        },
+        {
+          "el": "Cz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Basis für die Theta/Beta-Ratio als Aufmerksamkeitsindex (niedrig = fokussierter)."
+        },
+        {
+          "el": "F3",
+          "band": "lowbeta",
+          "trend": "up",
+          "note": "Erhöhte Low-Beta-Aktivität bei aktiver, fokussierter Verarbeitung (Engagement, nicht Stress)."
+        },
+        {
+          "el": "F4",
+          "band": "lowbeta",
+          "trend": "up",
+          "note": "Erhöhte Low-Beta-Aktivität bei aktiver, fokussierter Verarbeitung (Engagement, nicht Stress)."
+        }
+      ]
+    },
+    {
+      "id": "entspannung",
+      "label": "Entspannung / Ruhe",
+      "summary": "Entspannter Wachzustand. Leitgröße: Anstieg des posterioren Alpha, besonders bei geschlossenen Augen.",
+      "mappings": [
+        {
+          "el": "O1",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Posteriorer Alpha steigt im entspannten Wachzustand, v.a. bei geschlossenen Augen."
+        },
+        {
+          "el": "O2",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Posteriorer Alpha steigt im entspannten Wachzustand, v.a. bei geschlossenen Augen."
+        },
+        {
+          "el": "POz",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Okzipitoparietaler Alpha als sensibler Ruhe-Indikator."
+        },
+        {
+          "el": "Pz",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietaler Alpha steigt bei nachlassender Aufmerksamkeit / Entspannung."
+        },
+        {
+          "el": "P3",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietaler Alpha (links) – mit P4 für Seitenvergleich."
+        },
+        {
+          "el": "P4",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietaler Alpha (rechts) – mit P3 für Seitenvergleich."
+        }
+      ]
+    },
+    {
+      "id": "belastung",
+      "label": "Mentale Belastung / Arbeitsgedächtnis",
+      "summary": "Kognitive Last (z.B. n-back). Leitgröße: frontaler Theta steigt, parietaler Alpha wird unterdrückt.",
+      "mappings": [
+        {
+          "el": "Fz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Frontal-Theta steigt mit Gedächtnis- und Aufgabenlast."
+        },
+        {
+          "el": "FCz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Verstärkt mit Fz den Lasteffekt im Frontal-Midline-Theta."
+        },
+        {
+          "el": "Pz",
+          "band": "alpha",
+          "trend": "down",
+          "note": "Parietaler Alpha wird mit steigender Last unterdrückt (Event-Related Desynchronisation)."
+        },
+        {
+          "el": "P3",
+          "band": "alpha",
+          "trend": "down",
+          "note": "Alpha-Suppression (links) als Lastindikator."
+        },
+        {
+          "el": "P4",
+          "band": "alpha",
+          "trend": "down",
+          "note": "Alpha-Suppression (rechts) als Lastindikator."
+        }
+      ]
+    },
+    {
+      "id": "valenz",
+      "label": "Emotionale Valenz (frontale Asymmetrie)",
+      "summary": "Annäherung vs. Rückzug über die frontale Alpha-Asymmetrie. Index: ln(α F4) − ln(α F3).",
+      "mappings": [
+        {
+          "el": "F3",
+          "band": "alpha",
+          "trend": "asym",
+          "note": "Linksfrontaler Alpha. Weniger Alpha links = mehr Aktivität = Annäherung / positiver Affekt."
+        },
+        {
+          "el": "F4",
+          "band": "alpha",
+          "trend": "asym",
+          "note": "Rechtsfrontaler Alpha. Gegenpol des Asymmetrie-Index ln(α F4) − ln(α F3)."
+        },
+        {
+          "el": "AF3",
+          "band": "alpha",
+          "trend": "asym",
+          "note": "Ergänzende frontale Ableitung links zur Stabilisierung des Asymmetriemaßes."
+        },
+        {
+          "el": "AF4",
+          "band": "alpha",
+          "trend": "asym",
+          "note": "Ergänzende frontale Ableitung rechts zur Stabilisierung des Asymmetriemaßes."
+        }
+      ]
+    },
+    {
+      "id": "vigilanz",
+      "label": "Vigilanz / Schläfrigkeit",
+      "summary": "Nachlassende Wachheit. Leitgröße: diffuser Anstieg von Theta (und langsamem Alpha).",
+      "mappings": [
+        {
+          "el": "Cz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Diffuser Theta-Anstieg als frühes Müdigkeitszeichen."
+        },
+        {
+          "el": "Pz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Zentroparietaler Theta-Anstieg bei sinkender Vigilanz."
+        },
+        {
+          "el": "O1",
+          "band": "alpha",
+          "trend": "mix",
+          "note": "Verlangsamung des okzipitalen Alpha; Übergang Wachheit → Schläfrigkeit."
+        },
+        {
+          "el": "O2",
+          "band": "alpha",
+          "trend": "mix",
+          "note": "Verlangsamung des okzipitalen Alpha; Übergang Wachheit → Schläfrigkeit."
+        }
+      ]
+    },
+    {
+      "id": "smr",
+      "label": "Ruhige Fokussierung (SMR)",
+      "summary": "Wacher, aber motorisch ruhiger Zustand. Leitgröße: sensomotorischer Rhythmus über dem Motorkortex.",
+      "mappings": [
+        {
+          "el": "C3",
+          "band": "smr",
+          "trend": "up",
+          "note": "Sensomotorischer Rhythmus (links) – motorische Ruhe bei wachem Fokus."
+        },
+        {
+          "el": "Cz",
+          "band": "smr",
+          "trend": "up",
+          "note": "Zentraler SMR über dem Vertex."
+        },
+        {
+          "el": "C4",
+          "band": "smr",
+          "trend": "up",
+          "note": "Sensomotorischer Rhythmus (rechts)."
+        }
+      ]
+    },
+    {
+      "id": "motorik_rechts",
+      "label": "Motorik rechts (Bewegung/Vorstellung)",
+      "summary": "Bewegung oder Bewegungsvorstellung der rechten Körperseite. Aktiviert kontralateral den linken Motorkortex; Mu/Beta sinken während der Bewegung (ERD), danach Beta-Rebound (ERS).",
+      "mappings": [
+        {
+          "el": "C3",
+          "band": "mu",
+          "trend": "down",
+          "note": "Kontralateral (links) über dem Handareal: Mu-ERD während Bewegung/Vorstellung. Auch Beta (13–30 Hz) sinkt, mit Rebound nach Stopp. Primärelektrode."
+        },
+        {
+          "el": "FC3",
+          "band": "mu",
+          "trend": "down",
+          "note": "Anterior/prämotorisch; verstärkt das Mu- und Beta-ERD-Muster über C3."
+        },
+        {
+          "el": "CP3",
+          "band": "mu",
+          "trend": "down",
+          "note": "Posterior zum Handareal; ergänzt die räumliche Erfassung des ERD."
+        }
+      ]
+    },
+    {
+      "id": "motorik_links",
+      "label": "Motorik links (Bewegung/Vorstellung)",
+      "summary": "Bewegung oder Bewegungsvorstellung der linken Körperseite. Aktiviert kontralateral den rechten Motorkortex; Mu/Beta sinken während der Bewegung (ERD), danach Beta-Rebound (ERS).",
+      "mappings": [
+        {
+          "el": "C4",
+          "band": "mu",
+          "trend": "down",
+          "note": "Kontralateral (rechts) über dem Handareal: Mu-ERD während Bewegung/Vorstellung. Auch Beta (13–30 Hz) sinkt, mit Rebound nach Stopp. Primärelektrode."
+        },
+        {
+          "el": "FC4",
+          "band": "mu",
+          "trend": "down",
+          "note": "Anterior/prämotorisch; verstärkt das Mu- und Beta-ERD-Muster über C4."
+        },
+        {
+          "el": "CP4",
+          "band": "mu",
+          "trend": "down",
+          "note": "Posterior zum Handareal; ergänzt die räumliche Erfassung des ERD."
+        }
+      ]
+    },
+    {
+      "id": "motorik_beine",
+      "label": "Motorik Beine / Füße",
+      "summary": "Bewegung der unteren Extremitäten. Wegen des Homunkulus medial am Vertex repräsentiert (Cz); Mu sinkt (ERD).",
+      "mappings": [
+        {
+          "el": "Cz",
+          "band": "mu",
+          "trend": "down",
+          "note": "Vertex über dem Fuß-/Beinareal: Mu-ERD bei Bewegung der unteren Extremitäten. Primärelektrode."
+        },
+        {
+          "el": "FCz",
+          "band": "mu",
+          "trend": "down",
+          "note": "Anterior zum Vertex; ergänzt das mediale ERD-Muster."
+        },
+        {
+          "el": "CPz",
+          "band": "mu",
+          "trend": "down",
+          "note": "Posterior zum Vertex; ergänzt das mediale ERD-Muster."
+        }
+      ]
+    },
+    {
+      "id": "kreativ",
+      "label": "Kreatives Denken (divergent)",
+      "summary": "Divergentes, ideengenerierendes Denken. Leitgröße: Anstieg des Alpha über frontalen und parietalen Arealen – internale Aufmerksamkeit schirmt externe Reize ab.",
+      "mappings": [
+        {
+          "el": "Fz",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Frontaler Alpha steigt bei internaler, ideengenerierender Aufmerksamkeit (Abschirmung externer Reize)."
+        },
+        {
+          "el": "F3",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Frontaler Alpha (links) steigt während kreativer Ideenfindung."
+        },
+        {
+          "el": "F4",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Frontaler Alpha (rechts) steigt während kreativer Ideenfindung."
+        },
+        {
+          "el": "Pz",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietaler Alpha steigt – internaler Fokus statt externer Verarbeitung."
+        },
+        {
+          "el": "P3",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietaler Alpha (links) steigt bei divergentem Denken."
+        },
+        {
+          "el": "P4",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietaler Alpha (rechts) steigt bei divergentem Denken."
+        }
+      ]
+    },
+    {
+      "id": "excitement",
+      "label": "Excitement / Arousal (Erregung)",
+      "summary": "Plötzliche sympathische Aktivierung (Freude, Schreck, Fight-or-Flight): abrupter Anstieg hochfrequenter Aktivität bei Unterdrückung langsamer Wellen. Emotiv-Kompositmetrik – Elektroden sind eine Näherung an die mehrkanalige Berechnung.",
+      "mappings": [
+        {
+          "el": "AF3",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Anterior-frontal (links): rascher High-Beta-Anstieg bei Arousal, Alpha wird unterdrückt. Emotiv misst real weiträumig (auch temporal T7/T8 – hier nicht belegt)."
+        },
+        {
+          "el": "AF4",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Anterior-frontal (rechts): High-Beta-Anstieg als Arousal-Marker."
+        },
+        {
+          "el": "F3",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Frontal (links): hochfrequente Aktivität steigt phasisch an. Gamma (25–45 Hz) wäre theoretisch beteiligt, mit diesem Gerät aber unzuverlässig (EMG / Nyquist bei 128 Hz)."
+        },
+        {
+          "el": "F4",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Frontal (rechts): High-Beta-Anstieg bei plötzlicher Erregung."
+        }
+      ]
+    },
+    {
+      "id": "stress",
+      "label": "Stress / Frustration",
+      "summary": "Kognitive Überlastung: anhaltend hohes High-Beta ohne regulierende Alpha-Pausen. Leitgröße ist das dauerhafte frontozentrale High-Beta, gekoppelt mit einem Alpha-Abfall. Emotiv-Kompositmetrik – Elektroden sind eine Näherung.",
+      "mappings": [
+        {
+          "el": "Fz",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Frontale Mittellinie (Problemlösung): dauerhaft hohes High-Beta ohne regulierende Alpha-Pausen = Überlastung."
+        },
+        {
+          "el": "F3",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Frontal (links): anhaltendes, unreguliertes High-Beta bei Frustration."
+        },
+        {
+          "el": "F4",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Frontal (rechts): anhaltendes, unreguliertes High-Beta bei Frustration."
+        },
+        {
+          "el": "FCz",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Frontozentral: kontinuierliche High-Beta-Aktivität, kennzeichnend für den Frustrations-/Überlastungszustand."
+        },
+        {
+          "el": "Cz",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Zentral: das hohe Beta-Niveau bleibt ohne die entspannenden Alpha-Pausen bestehen (signifikanter Alpha-Abfall)."
+        }
+      ]
+    }
+  ]
+}

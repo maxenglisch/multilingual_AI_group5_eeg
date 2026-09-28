@@ -207,7 +207,21 @@ def build_parser():
     parser.add_argument("--video-duration", type=float, default=10.0)
     parser.add_argument("--video-fps", type=int, default=10)
     parser.add_argument("--config", default=None)
+    parser.add_argument("--analysis", choices=["mrcp", "states", "all"], default=None,
+                        help="Default: the analyses listed in the config")
+    parser.add_argument("--make-playback", nargs="?", const=True, type=parse_bool, default=None,
+                        help="Write playback JSON per recording; default only for a single subject")
     return parser
+
+
+def selected_analyses(args, cfg):
+    choice = getattr(args, "analysis", None)
+    if choice is None:
+        return list(cfg["analyses"])
+    analyses = ["mrcp", "states"] if choice == "all" else [choice]
+    if "mrcp" in analyses and cfg["dataset"]["adapter"] != "mendeley_mrcp":
+        raise ValueError(f"The mrcp analysis is not available for {cfg['dataset']['name']}")
+    return analyses
 
 
 def run(args):
@@ -221,12 +235,21 @@ def run(args):
         for name, path in result.items():
             print(f"  {name}: {path}")
         return 0
-    if not args.data_dir:
-        raise ValueError("--data-dir is required unless --make-motorik-barcharts is used")
-    if getattr(args, "all_subjects", False) or getattr(args, "subjects", None):
-        from .group_analysis import run_group
-        return run_group(args, load_config(args.config), run_single)
-    return run_single(args)
+    cfg = load_config(args.config)
+    analyses = selected_analyses(args, cfg)
+    status = 0
+    if "mrcp" in analyses:
+        if not args.data_dir:
+            raise ValueError("--data-dir is required unless --make-motorik-barcharts is used")
+        if getattr(args, "all_subjects", False) or getattr(args, "subjects", None):
+            from .group_analysis import run_group
+            status = run_group(args, cfg, run_single)
+        else:
+            status = run_single(args)
+    if "states" in analyses:
+        from .state_analysis import run_states
+        status = run_states(args, cfg) or status
+    return status
 
 
 def main():

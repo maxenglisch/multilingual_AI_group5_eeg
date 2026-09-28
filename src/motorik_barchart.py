@@ -113,7 +113,8 @@ def _horizontal_bar_pillow(labels, values, title, subtitle, xlabel, path, annota
     draw.text((800, height-55), xlabel, fill="black", font=font)
     maximum = max(values) if values else 0
     left, right, top = 280, width-300, 165
-    default_color = matplotlib.rcParams["axes.prop_cycle"].by_key()["color"][0]
+    # Matplotlib >= 3.11 returns an RGB float tuple here, which Pillow rejects.
+    default_color = matplotlib.colors.to_hex(matplotlib.rcParams["axes.prop_cycle"].by_key()["color"][0])
     for index, (label, value, annotation) in enumerate(zip(labels, values, annotations)):
         y = top + index * row_height
         draw.text((60, y+8), str(label), fill="black", font=font)

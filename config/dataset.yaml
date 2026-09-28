@@ -1,3 +1,10 @@
+dataset:
+  name: mendeley_mrcp
+  adapter: mendeley_mrcp
+  title: Movement-Related EEG/EMG - right-hand fist closure
+# Analyses run when --analysis is not given. "mrcp" is the original
+# time-domain pipeline, "states" the band-power state scoring.
+analyses: [mrcp, states]
 sampling_rates:
   eeg: 128.0
   emg: 440.0
@@ -112,3 +119,37 @@ mrcp:
   butterworth_order: 4
   use_car: true
   use_csd: false
+# Band-power state scoring (src/state_analysis.py). Shares make_raw and CAR
+# with the MRCP branch but filters separately: 0.1-1 Hz would remove every band.
+states:
+  definitions: states.json
+  bandpass: [1.0, 45.0]
+  butterworth_order: 4
+  # No line-noise peak at 50 or 60 Hz in this export (checked on four subjects);
+  # the headset already low-passes near 45 Hz.
+  notch_hz: null
+  window_s: 1.0
+  step_s: 0.125
+  playback_step_s: 0.5
+  quality_gate:
+    max_ptp_uv: 150.0
+    min_std_uv: 0.5
+    max_bad_channel_fraction: 0.25
+    min_good_frame_fraction: 0.5
+  # Labelled sections between trigger codes. A section starts at a start code
+  # and ends at the next stop code; it is dropped if another start code comes
+  # first. The first trial of every file starts with 771 at t=0, so there is
+  # no rest section before it.
+  segments:
+    - {label: rest, start: [1000], stop: [771], baseline: true, min_duration_s: 1.0}
+    - {label: preparation, start: [771], stop: [7711], min_duration_s: 1.0}
+    - {label: movement, start: [7711], stop: [7712], expected_state: motorik_rechts, min_duration_s: 1.0}
+    - {label: post_movement, start: [7712], stop: [1000], min_duration_s: 1.0}
+  # Contralateral check: movement minus rest in dB, per band and channel.
+  # For the right hand, mu/beta desynchronisation is expected to be stronger
+  # over the left hemisphere (C3) than over the right (C4).
+  lateralization:
+    segment: movement
+    bands: [mu, lowbeta, highbeta]
+    channels: [FC3, C3, CP3, FCz, Cz, CPz, FC4, C4, CP4]
+    pairs: [[C3, C4], [FC3, FC4], [CP3, CP4]]
