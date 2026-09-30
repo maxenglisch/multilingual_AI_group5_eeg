@@ -1,0 +1,69 @@
+{
+  "recordTitle": "EmotivPRO Dummy V2 All Streams",
+  "format": "EmotivPRO marker sidecar dummy",
+  "description": "Marker mapping for synthetic demo segments; mirrors MarkerIndex/MarkerValueInt in CSV.",
+  "markers": [
+    {
+      "markerIndex": 1,
+      "timestamp": 1783252800.0,
+      "timeFromStartSec": 0.0,
+      "type": "keystroke",
+      "valueInt": 0,
+      "label": "neutral_baseline",
+      "durationSec": 5.0
+    },
+    {
+      "markerIndex": 2,
+      "timestamp": 1783252805.0,
+      "timeFromStartSec": 5.0,
+      "type": "keystroke",
+      "valueInt": 10,
+      "label": "stress_frustration",
+      "durationSec": 5.0
+    },
+    {
+      "markerIndex": 3,
+      "timestamp": 1783252810.0,
+      "timeFromStartSec": 10.0,
+      "type": "keystroke",
+      "valueInt": 20,
+      "label": "relaxation_alpha",
+      "durationSec": 5.0
+    },
+    {
+      "markerIndex": 4,
+      "timestamp": 1783252815.0,
+      "timeFromStartSec": 15.0,
+      "type": "keystroke",
+      "valueInt": 30,
+      "label": "excitement_arousal",
+      "durationSec": 5.0
+    },
+    {
+      "markerIndex": 5,
+      "timestamp": 1783252820.0,
+      "timeFromStartSec": 20.0,
+      "type": "keystroke",
+      "valueInt": 40,
+      "label": "focus_attention",
+      "durationSec": 5.0
+    },
+    {
+      "markerIndex": 6,
+      "timestamp": 1783252825.0,
+      "timeFromStartSec": 25.0,
+      "type": "keystroke",
+      "valueInt": 99,
+      "label": "bad_quality_motion_artifact",
+      "durationSec": 5.0
+    }
+  ],
+  "valueMap": {
+    "0": "neutral_baseline",
+    "10": "stress_frustration",
+    "20": "relaxation_alpha",
+    "30": "excitement_arousal",
+    "40": "focus_attention",
+    "99": "bad_quality_motion_artifact"
+  }
+}

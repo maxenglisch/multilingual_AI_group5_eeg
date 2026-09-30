@@ -1,0 +1,7 @@
+markerIndex,timestamp,timeFromStartSec,type,valueInt,label,durationSec
+1,1783252800.0,0.0,keystroke,0,neutral_baseline,5.0
+2,1783252805.0,5.0,keystroke,10,stress_frustration,5.0
+3,1783252810.0,10.0,keystroke,20,relaxation_alpha,5.0
+4,1783252815.0,15.0,keystroke,30,excitement_arousal,5.0
+5,1783252820.0,20.0,keystroke,40,focus_attention,5.0
+6,1783252825.0,25.0,keystroke,99,bad_quality_motion_artifact,5.0
