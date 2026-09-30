@@ -4,7 +4,7 @@
 **Gruppe 5:** Maximilian Englisch, Grischa Staar, Lawan Mai, Jinghao Zhang
 **Betreuung / Feedback:** Bagci, Baumartz  
 
-Dieses Repository und diese `README.md` bilden die **Abschlussdokumentation** unseres EEG-Projekts. Enthalten sind Recherche, Datensatzbewertung, Preprocessing-Entscheidungen, ein Pipeline-Prototyp auf Basis realer Emotiv-Flex-2-Daten, synthetische Emotion-/Kognitionsdaten sowie (später ergänzt) die Visualisierungsdemos.
+Dieses Repository und diese `README.md` bilden die **Abschlussdokumentation** unseres EEG-Projekts. Enthalten sind EEG-Grundlagen, Recherche, Datensatzbewertung, Preprocessing-Entscheidungen, ein Pipeline-Prototyp auf Basis realer Emotiv-Flex-2-Daten, synthetische Emotion-/Kognitionsdaten sowie (später ergänzt) die Visualisierungsdemos.
 
 Begleitende Materialien liegen unter [`presentations/`](presentations/):
 
@@ -39,7 +39,7 @@ Grundprinzip: **Alle haben an allem mitgearbeitet** – Datensätze suchen, Pipe
 
 | Person | Schwerpunkt | Mitwirkung darüber hinaus |
 | --- | --- | --- |
-| **Max Englisch** | Datensatz-Recherche, Pipeline-Vergleich, MNE/PyPREP-Entscheidung, Pipeline-Prototyp, Abschlussdoku | Synthetische Daten, Visualisierungen, Tests |
+| **Max** | Datensatz-Recherche, Pipeline-Vergleich, MNE/PyPREP-Entscheidung, Pipeline-Prototyp, Abschlussdoku | Synthetische Daten, Visualisierungen, Tests |
 | **Grischa** | Synthetische Emotion-/Kognitionsdaten, EmotivPRO-Export-Dummy, Mapping mentale Zustände ↔ Bänder/Elektroden | Dataset-Recherche, Pipeline, HTML-Anbindung |
 | **Lawan** | HTML-Visualisierung / interaktive Zustandsdarstellung (Hauptfokus) | Research, Feedback-Einbau (u. a. Videoanalyse) |
 | **Jinghao** | Dataset-Visualisierung (Hauptfokus) | Research, Pipeline-Tests, gemeinsame Demos |
@@ -48,9 +48,101 @@ Die Abschnitte zu Lawans HTML-Demo und Jinghaos Dataset-Visualisierung werden in
 
 ---
 
-## 3. Recherche: öffentliche EEG-Datensätze
+## 3. EEG-Grundlagen
 
-### 3.1 Ausgangspunkt und Kriterien
+Damit die Datensatzwahl, die Pipeline und die Visualisierungen nachvollziehbar sind, hier kurz die fachlichen Basics, auf die wir uns im Projekt gestützt haben. Die Zuordnung **mentaler Zustand ↔ Elektroden ↔ Frequenzband** haben wir in [`presentations/klassifizierung.xlsx`](presentations/klassifizierung.xlsx) festgehalten und unten übernommen.
+
+### 3.1 Was ist EEG?
+
+**Elektroenzephalografie (EEG)** misst die elektrische Aktivität der Großhirnrinde über Elektroden auf der Kopfhaut. Viele Neurone feuern synchron – die Summenspannung (typisch im Mikrovolt-Bereich) wird zeitlich hochaufgelöst abgetastet.
+
+Für uns relevante Eigenschaften:
+
+- **Nicht-invasiv** und relativ günstig (besonders mit Consumer-Headsets wie dem Emotiv Flex 2)  
+- **Hohe zeitliche Auflösung** (bei uns oft **128 Hz**) – gut für Events, Epoching und schnelle Zustandswechsel  
+- **Begrenzte räumliche Auflösung** – man sieht eher regionale Muster als millimetergenaue Quellen  
+- Das Rohsignal ist **rauschig** (Netzbrumm, Augen-/Muskelartefakte, schlechter Kontakt) → Preprocessing ist Pflicht  
+
+EEG eignet sich damit gut für **Brain-Computer-Interfaces**, Aufmerksamkeits-/Emotionsdemos und Motor-Tasks – genau die Richtung unseres Seminarthemas.
+
+### 3.2 Gehirnwellen (Frequenzbänder)
+
+Statt nur die Rohkurve zu betrachten, zerlegt man EEG oft in **Frequenzbänder**. Unterschiedliche Bänder hängen typischerweise mit unterschiedlichen mentalen Zuständen zusammen (vereinfacht, nicht diagnostisch):
+
+| Band | Ungefährer Bereich | Typische Assoziation |
+| --- | --- | --- |
+| **Delta** | ~0,5–4 Hz | tiefer Schlaf, sehr langsame Aktivität |
+| **Theta** | ~4–8 Hz | Dösen, innere Verarbeitung; frontal-mittig oft mit **Fokus / Workload** verknüpft |
+| **Alpha** | ~8–13 Hz | entspannte Wachheit, Augen zu (stark okzipital); auch bei **Kreativität** und als Basis für **Emotions-Asymmetrie** |
+| **Mu** | ~8–13 Hz (über sensomotorischem Kortex) | Ruhe im motorischen System; **sinkt** bei Bewegung oder Bewegungsvorstellung |
+| **SMR / Low Beta** | ~12–16 Hz | ruhige Aufmerksamkeit / kontrolliertes Engagement |
+| **Beta** (inkl. High Beta) | ~13–30 Hz | aktive Konzentration, Anspannung; stark erhöht oft mit **Stress / Arousal** assoziiert |
+| **Gamma** | ~30–45+ Hz | schnelle Bindung / hohe kognitive Aktivität; artefaktanfällig |
+
+In EmotivPRO-Exports erscheinen Bandpower oft als `POW.<Sensor>.<Theta|Alpha|BetaL|BetaH|Gamma>` – genau dieses Schema nutzen wir im Dummy unter `synthetic_emotivexport/`.
+
+### 3.3 Elektrodenplatzierung (10-10 / 10-20)
+
+Elektroden werden nach dem internationalen **10-20-** bzw. feineren **10-10-System** benannt. Die Buchstaben stehen für Hirnregionen, die Zahlen für die Seite:
+
+| Buchstabe | Region | Grobe Funktion |
+| --- | --- | --- |
+| **Fp / AF** | Frontopolar / Anterior-Frontal | Aufmerksamkeit, Emotion, Annäherung/Vermeidung |
+| **F** | Frontal | Planung, Logik, Emotion, Kreativität |
+| **FC / C / CP** | Frontozentral / Zentral / Centroparietal | Motorik, Sensorimotorik (Mu/Beta) |
+| **P / PO** | Parietal / Parieto-okzipital | Integration, Ruhe-/Alpha-Aktivität |
+| **O** | Okzipital | Visuelles System, Alpha bei Augen zu |
+| **T** | Temporal | auditorisch / sprachbezogen (bei unserem 32er-Layout weniger zentral) |
+
+**Seitenkodierung:** ungerade = links (z. B. **C3**), gerade = rechts (z. B. **C4**), **z** = Mittellinie (z. B. **Cz**, **Fz**).  
+Wichtig für Motorik: der **linke** Motorkortex steuert die **rechte** Körperseite → rechte Handbewegung zeigt sich vor allem um **C3**.
+
+Unser Emotiv-Flex-2-Layout (32 Kanäle) entspricht grob:
+
+`AF3, AF4, F3, F1, Fz, F2, F4, FC3, FC1, FCz, FC2, FC4, C3, C1, Cz, C2, C4, CP3, CP1, CPz, CP2, CP4, P3, P1, Pz, P2, P4, PO3, POz, PO4, O1, O2`
+
+(siehe auch [`synthetic_emotivexport/epocflex_channel_mapping_dummy.json`](synthetic_emotivexport/epocflex_channel_mapping_dummy.json)).
+
+### 3.4 Welche Bereiche sind wofür relevant?
+
+Aus unserer Klassifizierungsübersicht ([`klassifizierung.xlsx`](presentations/klassifizierung.xlsx)):
+
+| Mentaler Zustand | Relevante Elektroden | Frequenzband | Signal und Bedeutung |
+| --- | --- | --- | --- |
+| **Motorik rechts** (Bewegung/Vorstellung) | **C3** (Fokus), FC3, CP3 | Mu (8–13 Hz), Beta (13–30 Hz) | Sinkt während Bewegung/Vorstellung; steigt (Rebound) direkt nach Stopp |
+| **Motorik links** (Bewegung/Vorstellung) | **C4** (Fokus), FC4, CP4 | Mu, Beta | analog zur rechten Seite, kontralateral |
+| **Motorik Beine** | Cz, FCz, CPz | Mu (8–13 Hz) | Sinkt bei Bewegung der unteren Extremitäten |
+| **Visuelles & Entspannung** (Augen zu) | **O1, O2** (Fokus), PO3, POz, PO4 | Alpha (8–13 Hz) | Schießt hoch bei Augen zu, fällt sofort bei Augen auf |
+| **Logik, Fokus & Workload** (Kopfrechnen, Rätsel) | **Fz** (Fokus), F1, F2, F3, F4 | Theta (4–8 Hz), Beta (13–30 Hz), Alpha (8–13 Hz) | Theta steigt stark an der Mittellinie (Fz); Beta steigt global; Alpha sinkt (Alpha-Blockade) |
+| **Emotionen & Stress** (negativ / Vermeidung) | AF3, F3 (links), AF4, F4 (rechts) | Alpha (8–13 Hz) | Asymmetrie: Alpha links höher → rechte Hemisphäre aktiver → Stress/Vermeidung |
+| **Emotionen & Entspannung** (positiv / Annäherung) | AF3, F3 (links), AF4, F4 (rechts) | Alpha (8–13 Hz) | Asymmetrie: Alpha rechts höher → linke Hemisphäre aktiver → positiv/Annäherung |
+| **Kreatives Denken** (Out-of-the-Box) | F-Reihe (F3, F4, Fz), P-Reihe (P3, P4, Pz) | Alpha (8–13 Hz) | Alpha steigt (Gehirn blockt externe Reize, um intern ungestört Ideen zu generieren) |
+
+Diese Zuordnung erklärt auch unsere Projektentscheidungen:
+
+- Beim **Hand-Gesture-Datensatz** schauen wir vor allem auf **C3 / frontozentrale** Kanäle und Mu/Beta (Motorik rechts).  
+- Bei den **synthetischen Emotion-/Kognitionsdaten** modellieren wir u. a. frontale Alpha-Asymmetrie, Frontal-Midline-Theta (Fokus) und okzipitales Alpha (Entspannung) – passend zu den Zeilen oben.  
+- Die **HTML-Demo** färbt genau diese Elektroden/Bänder je Zustand ein.
+
+### 3.5 Kurz: von der Kurve zur Aussage
+
+```text
+Roh-EEG (viele Kanäle, Zeit)
+        ↓  Filter / Referenz / ggf. Bad Channels
+Vorverarbeitetes Signal
+        ↓  Epoching um Events  ODER  Bandpower über Zeitfenster
+ERP / spektrale Features pro Region
+        ↓
+Interpretation entlang Zustands-Tabelle (Motorik, Fokus, Emotion, …)
+        ↓
+Pipeline-Plots  bzw.  HTML-/Dataset-Visualisierung
+```
+
+---
+
+## 4. Recherche: öffentliche EEG-Datensätze
+
+### 4.1 Ausgangspunkt und Kriterien
 
 Als Einstieg diente die kuratierte Liste öffentlicher EEG-Datensätze:
 
@@ -67,7 +159,7 @@ Darauf aufbauend haben wir Datensätze grob nach Domänen sortiert (siehe auch Z
 | **Größe & Aufwand** | Für Seminar-Prototyp handhabbar (nicht nur „Million-Trial Deep Learning“) |
 | **Passung zum Seminarfokus** | Idealerweise Emotion/Kognition/Kreativität – real selten mit Flex 2 |
 
-### 3.2 Übersicht der genauer betrachteten Datensätze
+### 4.2 Übersicht der genauer betrachteten Datensätze
 
 | Datensatz | Gerät | Task | Für uns nutzbar? | Kurzfazit |
 | --- | --- | --- | --- | --- |
@@ -76,7 +168,7 @@ Darauf aufbauend haben wir Datensätze grob nach Domänen sortiert (siehe auch Z
 | **Kaggle Distance Learning** | Emotiv Epoc X (14 Kanäle) | Online-Vorlesung, Verständnis ja/nein | Nur bedingt | Emotiv-Familie & kognitiver Task, aber anderes Gerät / 14 statt 32 Kanäle |
 | Weitere Sets aus EEG-Datasets | diverse Lab-Systeme | Motor Imagery, Emotion (DEAP etc.), P300, … | Meist nein als Hauptset | Oft Research-Grade-Hardware, anderer Formfaktor, wenig Flex-2-Bezug |
 
-### 3.3 Hand Gesture Dataset (gewählt)
+### 4.3 Hand Gesture Dataset (gewählt)
 
 **Quellen**
 
@@ -116,7 +208,7 @@ Subject 01, gleiches Event:
 
 ![Averaged ERP subject 01, event 7711](pipeline_prototype/outputs/figures/subject01_event_7711_average.png)
 
-### 3.4 Alljoined-1.6M
+### 4.4 Alljoined-1.6M
 
 **Quellen**
 
@@ -142,7 +234,7 @@ Subject 01, gleiches Event:
 
 Alljoined blieb damit eine **wichtige Referenz** („es gibt große Flex-2-Daten“), nicht der Arbeitsdatensatz.
 
-### 3.5 Kaggle: EEG Distance Learning (Emotiv Epoc X)
+### 4.5 Kaggle: EEG Distance Learning (Emotiv Epoc X)
 
 **Quelle:** [Kaggle – EEG data / Distance learning](https://www.kaggle.com/datasets/madyanomar/eeg-data-distance-learning-environment)
 
@@ -163,7 +255,7 @@ Alljoined blieb damit eine **wichtige Referenz** („es gibt große Flex-2-Daten
 - Pipeline und Visualisierung wären nicht 1:1 auf Flex 2 übertragbar  
 - Labelqualität (self-report / Verständnis) ist grob und experimentell anders aufgebaut  
 
-### 3.6 Zwischenfazit Datensätze
+### 4.6 Zwischenfazit Datensätze
 
 | Priorität | Datensatz | Rolle im Projekt |
 | --- | --- | --- |
@@ -174,9 +266,9 @@ Alljoined blieb damit eine **wichtige Referenz** („es gibt große Flex-2-Daten
 
 ---
 
-## 4. Recherche: Preprocessing-Pipelines und Libraries
+## 5. Recherche: Preprocessing-Pipelines und Libraries
 
-### 4.1 Warum Preprocessing überhaupt?
+### 5.1 Warum Preprocessing überhaupt?
 
 EEG ist rauschig: Elektrodenkontakt, Netzbrumm (50/60 Hz), Augen-/Muskelartefakte, Drift. Ohne systematische Vorverarbeitung sind Filterung, Epoching und Visualisierung unzuverlässig. Ein guter Überblick aus Emotiv-Sicht:
 
@@ -184,7 +276,7 @@ EEG ist rauschig: Elektrodenkontakt, Netzbrumm (50/60 Hz), Augen-/Muskelartefakt
 
 Typische Schritte (je nach Pipeline leicht unterschiedlich): Bad-Channel-Detection, Filterung, Re-Referenzierung, Artefaktbehandlung (z. B. ICA), Epoching, Baseline-Korrektur.
 
-### 4.2 Betrachtete Optionen
+### 5.2 Betrachtete Optionen
 
 | Option | Link(s) | Stack | Kurzbeschreibung | Bewertung für uns |
 | --- | --- | --- | --- | --- |
@@ -194,7 +286,7 @@ Typische Schritte (je nach Pipeline leicht unterschiedlich): Bad-Channel-Detecti
 | **MNE-Python** | [mne.tools](https://mne.tools/stable/index.html), [Tutorial Overview](https://mne.tools/stable/auto_tutorials/intro/10_overview.html) | Python | Framework für Laden, Filtern, Events, Epochs, Plotting, ICA, … | **Hauptbasis** |
 | **EEG-Pype** | [PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC12970966/), [GitHub](https://github.com/yorbenlodema/EEG-Pype) | MNE + GUI | Zugängliche MNE-Pipeline mit GUI (eher Resting-State) | Nützlich als Inspiration; Task-EEG brauchen wir eher skriptbasiert |
 
-### 4.3 Entscheidung: MNE + PyPREP
+### 5.3 Entscheidung: MNE + PyPREP
 
 **Warum MNE als Basis**
 
@@ -214,7 +306,7 @@ Typische Schritte (je nach Pipeline leicht unterschiedlich): Bad-Channel-Detecti
 - EEGLAB ist MATLAB-zentriert; EEGprep wäre ein Umweg  
 - EEG-Pype zielt stärker auf Resting-State + GUI – unser Fokus lag auf nachvollziehbarem Python-Code im Repo  
 
-### 4.4 Was der Pipeline-Prototyp konkret macht
+### 5.4 Was der Pipeline-Prototyp konkret macht
 
 Code: [`pipeline_prototype/src/eeg_pipeline.py`](pipeline_prototype/src/eeg_pipeline.py)  
 Notebooks: [`pipeline_prototype/01_check_data.ipynb`](pipeline_prototype/01_check_data.ipynb)  
@@ -234,13 +326,13 @@ PyPREP ist in der Recherche und Architektur vorgesehen; der aktuelle Prototyp ze
 
 ---
 
-## 5. Feedback und Kurskorrektur: Synthetische Daten
+## 6. Feedback und Kurskorrektur: Synthetische Daten
 
-### 5.1 Feedback (Bagci)
+### 6.1 Feedback (Bagci)
 
 Aus dem Feedback kam klarer heraus: stärkerer Fokus auf **Kreativität, Emotion und Kognition** – nicht nur Motorik-Pipeline. Gleichzeitig fehlten öffentlich verfügbare Flex-2-Datensätze mit sauberen Emotion-/Kreativitäts-Labels.
 
-### 5.2 Unsere Antwort
+### 6.2 Unsere Antwort
 
 Wir haben **synthetische Datensätze** erzeugt (Schwerpunkt Grischa, mit Beteiligung von Max u. a.), die:
 
@@ -250,7 +342,7 @@ Wir haben **synthetische Datensätze** erzeugt (Schwerpunkt Grischa, mit Beteili
 
 Zusätzlich gibt es einen **EmotivPRO-ähnlichen Export-Dummy**, damit Import, Schema-Validierung und Browser-Adapter getestet werden können, ohne echte EmotivPRO-Aufnahmen zu brauchen.
 
-### 5.3 Legacy: synthetische Emotion-Zustände
+### 6.3 Legacy: synthetische Emotion-Zustände
 
 Ordner: [`legacy_synthetic_exports/`](legacy_synthetic_exports/)  
 Kurzbeschreibung dort: [`legacy_synthetic_exports/README_synthetic_emotion_dataset.txt`](legacy_synthetic_exports/README_synthetic_emotion_dataset.txt)
@@ -281,7 +373,7 @@ Kurzbeschreibung dort: [`legacy_synthetic_exports/README_synthetic_emotion_datas
 
 Als inhaltliche Klammer dient auch [`presentations/klassifizierung.xlsx`](presentations/klassifizierung.xlsx) (mentaler Zustand ↔ relevante Elektroden ↔ Frequenzband ↔ Signalbedeutung), z. B. Motorik C3/Mu-Beta, visuelle Entspannung O1/O2 Alpha, Fokus Fz Theta/Beta, Emotion über frontale Alpha-Asymmetrie.
 
-### 5.4 EmotivPRO-Export-Dummy
+### 6.4 EmotivPRO-Export-Dummy
 
 Ordner: [`synthetic_emotivexport/`](synthetic_emotivexport/)
 
@@ -302,14 +394,15 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 
 ---
 
-## 6. Was bisher umgesetzt ist (Stand Research + Daten)
+## 7. Was bisher umgesetzt ist (Stand Research + Daten)
 
 | Baustein | Status | Ort |
 | --- | --- | --- |
 | Dataset-Recherche & Bewertung | erledigt | diese README, Präsis |
 | Hand-Gesture-Daten als Arbeitsbasis | erledigt | `pipeline_prototype/data/raw/` |
 | MNE-Pipeline-Prototyp (Load → Filter → Epochs → Plot) | erledigt | `pipeline_prototype/` |
-| Entscheidung MNE + PyPREP | erledigt | Kapitel 4 |
+| EEG-Grundlagen & Zustands-Klassifizierung | erledigt | Kapitel 3, `klassifizierung.xlsx` |
+| Entscheidung MNE + PyPREP | erledigt | Kapitel 5 |
 | Synthetische Emotion-Daten + HTML-Demo-Anbindung | erledigt (Demo-Qualität) | `legacy_synthetic_exports/` |
 | EmotivPRO-Dummy + MNE-Import + Error Cases | erledigt | `synthetic_emotivexport/` |
 | Klassifikation Zustände/Bänder | erledigt als Übersicht | `presentations/klassifizierung.xlsx` |
@@ -320,7 +413,7 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 
 ---
 
-## 7. Probleme und offene Punkte
+## 8. Probleme und offene Punkte
 
 **Probleme / Learnings**
 
@@ -338,7 +431,7 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 
 ---
 
-## 8. Repo-Struktur (Überblick)
+## 9. Repo-Struktur (Überblick)
 
 ```text
 .
@@ -356,7 +449,7 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 
 ---
 
-## 9. Quellen (Auswahl)
+## 10. Quellen (Auswahl)
 
 **Datensätze / Übersichten**
 
@@ -377,7 +470,7 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 
 ---
 
-## 10. Nächste Ergänzungen in dieser Doku
+## 11. Nächste Ergänzungen in dieser Doku
 
 1. **Lawan:** HTML-Visualisierung, eingebautes Feedback (Videoanalyse etc.), Screenshots.  
 2. **Jinghao:** Dataset-Visualisierung, Features, Screenshots.  
