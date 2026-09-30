@@ -1,1 +1,389 @@
-# multilingual_AI_group5_eeg
+# Gruppe 5 – EEG Abschlussdokumentation
+
+**Seminar:** Multilingual AI · SoSe 2026  
+**Gruppe 5:** Maximilian Englisch, Grischa Staar, Lawan Mai, Jinghao Zhang
+**Betreuung / Feedback:** Bagci, Baumartz  
+
+Dieses Repository und diese `README.md` bilden die **Abschlussdokumentation** unseres EEG-Projekts. Enthalten sind Recherche, Datensatzbewertung, Preprocessing-Entscheidungen, ein Pipeline-Prototyp auf Basis realer Emotiv-Flex-2-Daten, synthetische Emotion-/Kognitionsdaten sowie (später ergänzt) die Visualisierungsdemos.
+
+Begleitende Materialien liegen unter [`presentations/`](presentations/):
+
+- [`presentations/EEG_AbschlussPräsi.pptx`](presentations/EEG_AbschlussPräsi.pptx) – Abschlusspräsentation  
+- [`presentations/Gruppe5_EEG_Präsi.pptx`](presentations/Gruppe5_EEG_Präsi.pptx) – Zwischenpräsentation  
+- [`presentations/EEG-Preprocessing-Pipeline.pdf`](presentations/EEG-Preprocessing-Pipeline.pdf) – Pipeline-Überblick  
+- [`presentations/klassifizierung.xlsx`](presentations/klassifizierung.xlsx) – Zuordnung mentale Zustände ↔ Elektroden ↔ Frequenzbänder  
+
+---
+
+## 1. Aufgabenbeschreibung
+
+Unsere Ausgangsaufgabe war, **öffentliche EEG-Datensätze** zu finden und zu bewerten, die zum Gerät passen, das an unserer Uni bestellt und geliefert werden sollte: dem **Emotiv Flex 2** (32 Kanäle, Consumer-/Research-taugliches Headset).
+
+Daraus ergaben sich konkrete Teilziele:
+
+1. **Recherche** möglichst vieler Open-Source-/öffentlich verfügbarer EEG-Datensätze (Schwerpunkte u. a. Motorik, Kognition, Emotion, Lernen).  
+2. **Filterung** nach Hardware-Nähe (idealerweise Emotiv Flex 2 oder vergleichbare Emotiv-Geräte), Labelqualität, Dokumentation und Nutzbarkeit in Python.  
+3. **Auswahl** eines geeigneten Datensatzes als Einstieg für Preprocessing, Visualisierung und Experimente.  
+4. **Recherche und Vergleich** gängiger EEG-Preprocessing-Pipelines / Libraries.  
+5. **Aufbau eines Pipeline-Prototyps** (CSV → MNE → Filter / Referenz / Epoching → erste Plots).  
+6. Nach Feedback: stärkerer Fokus auf **Kreativität, Emotion und Kognition** – u. a. durch **synthetische Datensätze**, weil reale Emotion-Tasks mit Flex-2-Hardware öffentlich kaum verfügbar waren.  
+7. **Visualisierungen** (HTML-Demo, Dataset-Visualisierung) und Abschlusspräsentation.
+
+Da das physische Gerät anfangs noch nicht zuverlässig für eigene Aufnahmen zur Verfügung stand, war der Pfad über **öffentliche + synthetische Daten** der pragmatische Weg, trotzdem Pipeline, Demo und Visualisierung voranzutreiben.
+
+---
+
+## 2. Team und Aufteilung
+
+Grundprinzip: **Alle haben an allem mitgearbeitet** – Datensätze suchen, Pipelines ausprobieren, Tests schreiben, Visualisierungen anfassen. Gegen Ende haben wir Schwerpunkte geschärft:
+
+| Person | Schwerpunkt | Mitwirkung darüber hinaus |
+| --- | --- | --- |
+| **Max Englisch** | Datensatz-Recherche, Pipeline-Vergleich, MNE/PyPREP-Entscheidung, Pipeline-Prototyp, Abschlussdoku | Synthetische Daten, Visualisierungen, Tests |
+| **Grischa** | Synthetische Emotion-/Kognitionsdaten, EmotivPRO-Export-Dummy, Mapping mentale Zustände ↔ Bänder/Elektroden | Dataset-Recherche, Pipeline, HTML-Anbindung |
+| **Lawan** | HTML-Visualisierung / interaktive Zustandsdarstellung (Hauptfokus) | Research, Feedback-Einbau (u. a. Videoanalyse) |
+| **Jinghao** | Dataset-Visualisierung (Hauptfokus) | Research, Pipeline-Tests, gemeinsame Demos |
+
+Die Abschnitte zu Lawans HTML-Demo und Jinghaos Dataset-Visualisierung werden in dieser Doku noch ergänzt; der vorliegende Stand dokumentiert vor allem den **Research- und Daten-/Pipeline-Teil** (Max & Grischa).
+
+---
+
+## 3. Recherche: öffentliche EEG-Datensätze
+
+### 3.1 Ausgangspunkt und Kriterien
+
+Als Einstieg diente die kuratierte Liste öffentlicher EEG-Datensätze:
+
+- **[meagmohit/EEG-Datasets](https://github.com/meagmohit/EEG-Datasets)** – Überblick über **100+** öffentliche EEG-Sets (Motorik, Kognition, Emotion, Schlaf, BCI, …).
+
+Darauf aufbauend haben wir Datensätze grob nach Domänen sortiert (siehe auch Zwischenpräsentation) und mit folgenden Kriterien bewertet:
+
+| Kriterium | Warum relevant für uns |
+| --- | --- |
+| **Gerät / Kanalzahl** | Möglichst Emotiv Flex 2 (32 Kanäle, ~128 Hz) oder zumindest Emotiv-Familie |
+| **Task / Labels** | Klare Events/Marker für Epoching und Visualisierung |
+| **Dokumentation** | Montage, Sampling, Protokoll, Dateiformat nachvollziehbar |
+| **Nutzbarkeit in MNE** | CSV/EDF o. Ä. → RawArray / Raw, Events, Epochs |
+| **Größe & Aufwand** | Für Seminar-Prototyp handhabbar (nicht nur „Million-Trial Deep Learning“) |
+| **Passung zum Seminarfokus** | Idealerweise Emotion/Kognition/Kreativität – real selten mit Flex 2 |
+
+### 3.2 Übersicht der genauer betrachteten Datensätze
+
+| Datensatz | Gerät | Task | Für uns nutzbar? | Kurzfazit |
+| --- | --- | --- | --- | --- |
+| **Hand Gesture (MRCP)** | Emotiv Flex 2, 32 Ch, 128 Hz | Willentliche rechte Handbewegung (Faustschluss) + EMG | **Ja – Hauptdatensatz** | Hardware passt 1:1; ideal zum Testen der Preprocessing-Pipeline |
+| **Alljoined-1.6M** | Emotiv Flex 2 (Epoc Flex 2 Gel) | ~1,6 Mio. visuelle Trials / EEG→Image | Eingeschränkt | Gerät passt, aber Scale & Fokus (Deep Decoding) zu groß für unseren Seminar-Prototyp |
+| **Kaggle Distance Learning** | Emotiv Epoc X (14 Kanäle) | Online-Vorlesung, Verständnis ja/nein | Nur bedingt | Emotiv-Familie & kognitiver Task, aber anderes Gerät / 14 statt 32 Kanäle |
+| Weitere Sets aus EEG-Datasets | diverse Lab-Systeme | Motor Imagery, Emotion (DEAP etc.), P300, … | Meist nein als Hauptset | Oft Research-Grade-Hardware, anderer Formfaktor, wenig Flex-2-Bezug |
+
+### 3.3 Hand Gesture Dataset (gewählt)
+
+**Quellen**
+
+- Paper / Data in Brief: [ScienceDirect – EEG and EMG Dataset for Analyzing Movement-Related Cortical Potentials in Hand Gesture Tasks](https://www.sciencedirect.com/science/article/pii/S2352340926001496)  
+- Download: [Mendeley Data – y23s2xg6x4](https://data.mendeley.com/datasets/y23s2xg6x4/1)
+
+**Inhalt (kurz)**
+
+- Aufgabe: **willentliche rechte Handbewegung** (Faustschluss) zur Analyse von **Movement-Related Cortical Potentials (MRCPs)**  
+- EEG: **32 Elektroden** nach **10-10-System**, Fokus fronto-zentral (u. a. FC3, FC1, FCz, C3, C1, Cz, CP3, CP1, CPz)  
+- Sampling: **128 Hz**  
+- Parallel **EMG** am rechten Unterarm zur Validierung der Bewegung  
+- Format bei uns im Repo: CSV-Dateien pro Subject/Trial (`SUBJECT##_Trial_##_EEG.csv` / `_EMG.csv`), Spalten u. a. `Triggers` + nummerierte EEG-Kanäle `2`–`33`
+
+**Warum wir ihn genommen haben**
+
+1. **Genau unser Gerät** (Emotiv Flex 2) – gleiche Kanalzahl und Sampling-Rate wie erwartet.  
+2. **Klare Trigger/Events** → Epoching und Averaging in MNE sind unmittelbar möglich.  
+3. **Handhabbare Größe** für Notebooks und einen ersten Pipeline-Durchlauf.  
+4. Guter Einstieg für **Preprocessing, Visualisierung und dynamische Darstellung**, auch wenn der Task (Motorik) thematisch nicht 1:1 Emotion/Kreativität ist.
+
+**Einschränkung**
+
+Der Task ist motorisch, nicht emotional. Für den späteren Seminarfokus (Emotion / Kreativität / Kognition) reicht er als **technisches Fundament**, nicht als inhaltliche Endlösung – daher später synthetische Emotion-Zustände.
+
+Im Repository liegen Rohdaten und erste Pipeline-Outputs unter:
+
+- Rohdaten (Auszug): [`pipeline_prototype/data/raw/`](pipeline_prototype/data/raw/)  
+- Pipeline-Code: [`pipeline_prototype/src/eeg_pipeline.py`](pipeline_prototype/src/eeg_pipeline.py)  
+- Beispiel-Plots: [`pipeline_prototype/outputs/figures/`](pipeline_prototype/outputs/figures/)
+
+Beispiel Averaged Evoked Response (Event `7711`) über Subjects:
+
+![Averaged ERP all subjects, event 7711](pipeline_prototype/outputs/figures/all_subjects_event_7711_average.png)
+
+Subject 01, gleiches Event:
+
+![Averaged ERP subject 01, event 7711](pipeline_prototype/outputs/figures/subject01_event_7711_average.png)
+
+### 3.4 Alljoined-1.6M
+
+**Quellen**
+
+- Paper: [Alljoined-1.6M (arXiv)](https://arxiv.org/html/2508.18571v2)  
+- Dataset u. a. auf Hugging Face / NEMAR (siehe Paper)
+
+**Inhalt (kurz)**
+
+- > **1,6 Millionen** visuelle Stimulus-Trials von **20 Personen**  
+- Aufgenommen mit **consumer-grade 32-Kanal-System** (Emotiv Flex 2 / Epoc Flex 2 Gel, ~2,2k USD)  
+- Ziel: prüfen, ob **semantisches Decoding / EEG-to-Image** auch mit günstiger Hardware skaliert  
+
+**Warum interessant**
+
+- Direkt **Flex-2-Hardware** und großer, aktueller Open-Source-Datensatz  
+- Zeigt, dass Consumer-EEG für moderne BCI-/ML-Fragen relevant ist  
+
+**Warum nicht unser Hauptdatensatz**
+
+- Für Seminar-Prototyp und HTML-Demo **zu groß** (Storage, Preprocessing, Fokus Deep Learning)  
+- Task ist visuelle Semantik / Image Reconstruction – passt weniger zu unserer Demo-Richtung Emotion/Kreativität  
+- Lizenz / Downstream-Nutzung ggf. restriktiver (u. a. CC-BY-NC-ND auf NEMAR-Seite erwähnt)
+
+Alljoined blieb damit eine **wichtige Referenz** („es gibt große Flex-2-Daten“), nicht der Arbeitsdatensatz.
+
+### 3.5 Kaggle: EEG Distance Learning (Emotiv Epoc X)
+
+**Quelle:** [Kaggle – EEG data / Distance learning](https://www.kaggle.com/datasets/madyanomar/eeg-data-distance-learning-environment)
+
+**Inhalt (kurz)**
+
+- Emotiv **Epoc X, 14 Kanäle**  
+- Studierende schauen Online-Vorlesungen; Label: Vorlesung verstanden (1) / nicht verstanden (0)  
+- Roh-EEG + Bandpower-Features pro Sensor  
+
+**Warum interessant**
+
+- Emotiv-Ökosystem, **kognitiver / Lern-Kontext** (näher an Seminar-Themen als reine Motorik)  
+- Einfach als CSV auf Kaggle verfügbar  
+
+**Warum nicht Hauptdatensatz**
+
+- **Anderes Gerät** (14 statt 32 Kanäle, anderes Montage-Layout)  
+- Pipeline und Visualisierung wären nicht 1:1 auf Flex 2 übertragbar  
+- Labelqualität (self-report / Verständnis) ist grob und experimentell anders aufgebaut  
+
+### 3.6 Zwischenfazit Datensätze
+
+| Priorität | Datensatz | Rolle im Projekt |
+| --- | --- | --- |
+| 1 | Hand Gesture (Flex 2) | Pipeline, Epoching, erste Plots, technische Basis |
+| 2 | Synthetische Emotion-Daten (selbst erzeugt) | Demo Emotion/Kognition nach Feedback |
+| Referenz | Alljoined-1.6M | Hardware-Validierung „Flex 2 in der Wildbahn“ |
+| Kontext | Kaggle Epoc X | Kognition/Lernen, aber Hardware-Mismatch |
+
+---
+
+## 4. Recherche: Preprocessing-Pipelines und Libraries
+
+### 4.1 Warum Preprocessing überhaupt?
+
+EEG ist rauschig: Elektrodenkontakt, Netzbrumm (50/60 Hz), Augen-/Muskelartefakte, Drift. Ohne systematische Vorverarbeitung sind Filterung, Epoching und Visualisierung unzuverlässig. Ein guter Überblick aus Emotiv-Sicht:
+
+- [Emotiv – EEG Preprocessing Pipeline Guide](https://www.emotiv.com/de/blogs/news/eeg-preprocessing-pipeline-guide)
+
+Typische Schritte (je nach Pipeline leicht unterschiedlich): Bad-Channel-Detection, Filterung, Re-Referenzierung, Artefaktbehandlung (z. B. ICA), Epoching, Baseline-Korrektur.
+
+### 4.2 Betrachtete Optionen
+
+| Option | Link(s) | Stack | Kurzbeschreibung | Bewertung für uns |
+| --- | --- | --- | --- | --- |
+| **PREP (klassisch)** | [PubMed / Bigdely-Shamlo et al.](https://pubmed.ncbi.nlm.nih.gov/26150785/) | oft MATLAB/EEGLAB-Kontext | Standardisierte Pipeline: robuste Referenz, Bad Channels, … | Konzeptuell stark; wir brauchen Python |
+| **PyPREP** | [GitHub sappelhoff/pyprep](https://github.com/sappelhoff/pyprep), [Zenodo](https://zenodo.org/records/18788268) | Python | Python-Implementierung der PREP-Pipeline | Gut als **Erweiterung** für Bad Channels / robuste Referenz |
+| **EEGprep** | [GitHub sccn/eegprep](https://github.com/sccn/eegprep) | Python (EEGLAB-Nähe) | „EEGLAB for Python“ | Interessant, aber für uns weniger zentral als MNE |
+| **MNE-Python** | [mne.tools](https://mne.tools/stable/index.html), [Tutorial Overview](https://mne.tools/stable/auto_tutorials/intro/10_overview.html) | Python | Framework für Laden, Filtern, Events, Epochs, Plotting, ICA, … | **Hauptbasis** |
+| **EEG-Pype** | [PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC12970966/), [GitHub](https://github.com/yorbenlodema/EEG-Pype) | MNE + GUI | Zugängliche MNE-Pipeline mit GUI (eher Resting-State) | Nützlich als Inspiration; Task-EEG brauchen wir eher skriptbasiert |
+
+### 4.3 Entscheidung: MNE + PyPREP
+
+**Warum MNE als Basis**
+
+- Offen, aktiv gepflegt, sehr gut dokumentiert  
+- Ideal für **task-basiertes EEG**: Events, Epoching, Evoked/ERP, Visualisierung  
+- CSV → `mne.io.RawArray` ist für unseren Hand-Gesture-Export direkt machbar  
+- Später erweiterbar (ICA, PSD, Topomaps, Export)
+
+**Warum PyPREP zusätzlich**
+
+- Speziell stark bei **Erkennung schlechter/auffälliger Kanäle**  
+- Macht die **Referenzierung robuster** (PREP-Idee)  
+- Ergänzt MNE, ersetzt es nicht  
+
+**Warum nicht nur EEGLAB / nur EEG-Pype**
+
+- EEGLAB ist MATLAB-zentriert; EEGprep wäre ein Umweg  
+- EEG-Pype zielt stärker auf Resting-State + GUI – unser Fokus lag auf nachvollziehbarem Python-Code im Repo  
+
+### 4.4 Was der Pipeline-Prototyp konkret macht
+
+Code: [`pipeline_prototype/src/eeg_pipeline.py`](pipeline_prototype/src/eeg_pipeline.py)  
+Notebooks: [`pipeline_prototype/01_check_data.ipynb`](pipeline_prototype/01_check_data.ipynb)  
+Environment: [`pipeline_prototype/environment.yml`](pipeline_prototype/environment.yml) (`eeg-mne`)
+
+Ablauf (vereinfacht):
+
+1. EEG-CSV laden (32 Kanäle + `Triggers`)  
+2. In `mne.io.RawArray` umwandeln (µV → V)  
+3. Events aus Trigger-Spalte extrahieren (Flanken)  
+4. Bandpass-Filter (Standard im Code: **1–40 Hz**)  
+5. Average-Referenz  
+6. Epoching um Event-Code (z. B. **7711**), Baseline z. B. −1…0 s  
+7. Subjects zusammenführen / Averagen und plotten  
+
+PyPREP ist in der Recherche und Architektur vorgesehen; der aktuelle Prototyp zeigt zuerst den **MNE-Kernpfad** (Laden → Filter → Referenz → Epochs → Plot). Die robuste Bad-Channel-/PREP-Stufe kann darauf aufgesetzt werden, sobald Montage/Kanalnamen vollständig gemappt sind.
+
+---
+
+## 5. Feedback und Kurskorrektur: Synthetische Daten
+
+### 5.1 Feedback (Bagci)
+
+Aus dem Feedback kam klarer heraus: stärkerer Fokus auf **Kreativität, Emotion und Kognition** – nicht nur Motorik-Pipeline. Gleichzeitig fehlten öffentlich verfügbare Flex-2-Datensätze mit sauberen Emotion-/Kreativitäts-Labels.
+
+### 5.2 Unsere Antwort
+
+Wir haben **synthetische Datensätze** erzeugt (Schwerpunkt Grischa, mit Beteiligung von Max u. a.), die:
+
+- auf Statistik/Skalierung der **Hand-Gesture-CSVs** und dem **32-Kanal-Layout** aufbauen,  
+- **literatur-/demo-nahe Muster** für Emotion und Kognition nachbilden (nicht klinisch validiert!),  
+- direkt an die **HTML-Zustandsvisualisierung** angebunden werden können.
+
+Zusätzlich gibt es einen **EmotivPRO-ähnlichen Export-Dummy**, damit Import, Schema-Validierung und Browser-Adapter getestet werden können, ohne echte EmotivPRO-Aufnahmen zu brauchen.
+
+### 5.3 Legacy: synthetische Emotion-Zustände
+
+Ordner: [`legacy_synthetic_exports/`](legacy_synthetic_exports/)  
+Kurzbeschreibung dort: [`legacy_synthetic_exports/README_synthetic_emotion_dataset.txt`](legacy_synthetic_exports/README_synthetic_emotion_dataset.txt)
+
+**Erzeugte Zustände (Trigger-Codes):**
+
+| Code | Zustand | Demo-Idee (kurz) |
+| --- | --- | --- |
+| 200 | Neutral / Baseline | Ruhe ohne gezielte Aktivierung |
+| 201 | Freude / positive Valenz | linksfrontale Alpha-Unterdrückung (Annäherung) |
+| 202 | Negative Valenz / Rückzug | rechtsfrontale Alpha-Unterdrückung |
+| 203 | Excitement / Arousal | anterior-frontales High-Beta ↑ |
+| 204 | Stress / Frustration | frontozentrales High-Beta ↑, posterior Alpha ↓ |
+| 205 | Entspannung | okzipital/parietal Alpha ↑ |
+| 206 | Fokus / Engagement | Frontal-Midline-Theta ↑, moderates Low-Beta |
+
+**Dateien**
+
+| Datei | Inhalt |
+| --- | --- |
+| `synthetic_emotion_eeg_raw.csv` | Zeitreihe: 7 Zustände × 10 s × 128 Hz ≈ 8960 Samples, 32 Elektroden |
+| `synthetic_emotion_bandpower.csv` | Long-Format state × Elektrode × Band (u. a. für farbige HTML-Highlights) |
+| `synthetic_emotion_dataset.js` / `.json` | Strukturierte Zustandsdefinitionen für die Demo |
+| `eeg_zustaende.html` | Basis-HTML |
+| `eeg_zustaende_synthetic_demo.html` | Demo inkl. synthetischer Emotion-Zustände |
+
+**Wichtig:** Das sind **Demonstrationsdaten**. Sie sind nicht als wissenschaftlich validierter Emotionsklassifikator zu verstehen; die Qualität realer physiologischer Entsprechung ist bewusst als **unklar / synthetisch** markiert. Sie ermöglichen aber Pipeline-, Visualisierungs- und UI-Arbeit am Emotionsthema.
+
+Als inhaltliche Klammer dient auch [`presentations/klassifizierung.xlsx`](presentations/klassifizierung.xlsx) (mentaler Zustand ↔ relevante Elektroden ↔ Frequenzband ↔ Signalbedeutung), z. B. Motorik C3/Mu-Beta, visuelle Entspannung O1/O2 Alpha, Fokus Fz Theta/Beta, Emotion über frontale Alpha-Asymmetrie.
+
+### 5.4 EmotivPRO-Export-Dummy
+
+Ordner: [`synthetic_emotivexport/`](synthetic_emotivexport/)
+
+Ziel: EmotivPRO-ähnliches **CSV-V2-Schema** (Metadata-Zeile, `EEG.*`, `MOT.*`, `CQ.*`/`EQ.*`, `POW.*`, `PM.*`, Marker) bereitstellen und per Python nach MNE importieren.
+
+| Pfad | Rolle |
+| --- | --- |
+| `emotivpro_v2_all_streams_dummy.csv` | Vollständiger Dummy-Stream |
+| `schema_columns.json` | Spalten-/Prefix-Schema, 32 Sensoren, 128 Hz |
+| `v1_split/` | Aufgeteilte Streams (EEG/CQ/EQ, Motion, Bandpower, Performance Metrics) |
+| `error_cases/` | Negativtests (fehlende Metadata, kaputte Zahlen, fehlende POW-Spalten, …) |
+| `src/emotivpro_mne_import.py` | Parser + Validierung + `RawArray` |
+| `src/emotivpro_browser_adapter.js` | Adapter Richtung Browser-Visualisierung |
+| `src/smoke_test.py` | Smoke Test |
+| `dummy_raw.fif` | Beispiel-Export als MNE FIF |
+
+Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisierungskette gegen ein **stabiles Schema** entwickeln.
+
+---
+
+## 6. Was bisher umgesetzt ist (Stand Research + Daten)
+
+| Baustein | Status | Ort |
+| --- | --- | --- |
+| Dataset-Recherche & Bewertung | erledigt | diese README, Präsis |
+| Hand-Gesture-Daten als Arbeitsbasis | erledigt | `pipeline_prototype/data/raw/` |
+| MNE-Pipeline-Prototyp (Load → Filter → Epochs → Plot) | erledigt | `pipeline_prototype/` |
+| Entscheidung MNE + PyPREP | erledigt | Kapitel 4 |
+| Synthetische Emotion-Daten + HTML-Demo-Anbindung | erledigt (Demo-Qualität) | `legacy_synthetic_exports/` |
+| EmotivPRO-Dummy + MNE-Import + Error Cases | erledigt | `synthetic_emotivexport/` |
+| Klassifikation Zustände/Bänder | erledigt als Übersicht | `presentations/klassifizierung.xlsx` |
+| HTML-Visualisierung (Lawan, Feedback Videoanalyse) | folgt in Doku | später ergänzen |
+| Dataset-Visualisierung (Jinghao) | folgt in Doku | später ergänzen |
+| PyPREP voll in Pipeline integriert | teilweise / offen | nächster technischer Schritt |
+| Eigene Aufnahmen mit Uni-Flex-2 | abhängig von Geräteverfügbarkeit | offen |
+
+---
+
+## 7. Probleme und offene Punkte
+
+**Probleme / Learnings**
+
+- Öffentliche **Flex-2-Emotion-Daten** praktisch nicht verfügbar → Motorik-Set + Synthetik als Kompromiss.  
+- Alljoined zeigt Hardware-Fit, sprengt aber Seminar-Scope.  
+- Hand-Gesture-CSVs nutzen nummerierte Spalten (`2`…`33`); für Topomaps/PyPREP braucht es ein sauberes **10-10-Kanalnamen-Mapping** (im synthetischen Emotion-Export und EmotivPRO-Dummy bereits als AF3…O2 modelliert).  
+- Synthetische Emotion-Muster sind **didaktisch**, nicht validiert – das muss in Präsi und Doku transparent bleiben.  
+
+**Noch zu tun**
+
+- Abschnitte zu **Lawans HTML** (inkl. eingebautem Feedback, Videoanalyse) und **Jinghaos Dataset-Visualisierung** hier ergänzen.  
+- PyPREP-Stufe (Bad Channels, robuste Referenz) fest in den Prototyp hängen.  
+- Ggf. echte Flex-2-Aufnahmen (sobald Gerät verfügbar) gegen die gleiche Pipeline laufen lassen.  
+- READMEs der Visualisierungsordner finalisieren, Repo-Zugriff an Bagci/Baumartz, Abgabe Abschlussdoku / OLAT.
+
+---
+
+## 8. Repo-Struktur (Überblick)
+
+```text
+.
+├── README.md                          ← diese Abschlussdokumentation
+├── presentations/                     ← Präsis, Pipeline-PDF, Klassifizierung
+├── pipeline_prototype/                ← MNE-Pipeline auf Hand-Gesture-Daten
+│   ├── data/raw/                      ← SUBJECT*-CSVs (+ Docs)
+│   ├── src/eeg_pipeline.py
+│   ├── outputs/figures/               ← Evoked-Plots
+│   ├── 01_check_data.ipynb
+│   └── environment.yml
+├── legacy_synthetic_exports/          ← synthetische Emotion-Zustände + HTML-Demo
+└── synthetic_emotivexport/            ← EmotivPRO-ähnlicher Dummy-Export + Importer
+```
+
+---
+
+## 9. Quellen (Auswahl)
+
+**Datensätze / Übersichten**
+
+- [meagmohit/EEG-Datasets](https://github.com/meagmohit/EEG-Datasets)  
+- [Alljoined-1.6M (arXiv)](https://arxiv.org/html/2508.18571v2)  
+- [Hand Gesture EEG/EMG – ScienceDirect](https://www.sciencedirect.com/science/article/pii/S2352340926001496)  
+- [Hand Gesture – Mendeley](https://data.mendeley.com/datasets/y23s2xg6x4/1)  
+- [Kaggle Distance Learning EEG (Epoc X)](https://www.kaggle.com/datasets/madyanomar/eeg-data-distance-learning-environment)  
+
+**Pipelines / Tools**
+
+- [Emotiv Preprocessing Guide](https://www.emotiv.com/de/blogs/news/eeg-preprocessing-pipeline-guide)  
+- [PREP Pipeline Paper (PubMed)](https://pubmed.ncbi.nlm.nih.gov/26150785/)  
+- [PyPREP](https://github.com/sappelhoff/pyprep) · [Zenodo](https://zenodo.org/records/18788268)  
+- [EEGprep](https://github.com/sccn/eegprep)  
+- [MNE-Python](https://mne.tools/stable/index.html) · [Intro Tutorial](https://mne.tools/stable/auto_tutorials/intro/10_overview.html)  
+- [EEG-Pype](https://github.com/yorbenlodema/EEG-Pype) · [PMC Article](https://pmc.ncbi.nlm.nih.gov/articles/PMC12970966/)  
+
+---
+
+## 10. Nächste Ergänzungen in dieser Doku
+
+1. **Lawan:** HTML-Visualisierung, eingebautes Feedback (Videoanalyse etc.), Screenshots.  
+2. **Jinghao:** Dataset-Visualisierung, Features, Screenshots.  
+3. Kurze **Beitragsmatrix** „wer hat was intensiver umgesetzt“ nach finaler Abstimmung.  
+4. Optional: kurze READMEs in den Visualisierungsordnern verlinken.
+
+---
+
+*Gruppe 5 · Multilingual AI · EEG · Abschlussdokumentation (Research-/Datenstand)*
