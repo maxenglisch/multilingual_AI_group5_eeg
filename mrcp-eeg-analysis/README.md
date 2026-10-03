@@ -54,9 +54,6 @@ mrcp-eeg-pipeline/
 │   │   └── reports/
 │   └── videos/
 ├── tests/
-├── docs/
-├── legacy/
-├── requirements.txt
 └── README.md
 ```
 
@@ -65,8 +62,6 @@ mrcp-eeg-pipeline/
 - `src/`: Enthält den Python-Quellcode für die Datenverarbeitung, MRCP-Analyse, Visualisierung und Berichtserstellung.
 - `outputs/`: Speichert die generierten Analyseergebnisse, Abbildungen, Animationen und HTML-Berichte.
 - `tests/`: Enthält automatisierte Tests zur Überprüfung verschiedener Funktionen der Pipeline.
-- `docs/`: Enthält zusätzliche technische Dokumentation.
-- `legacy/`: Enthält ältere Programmversionen und Skripte.
 
 Die zentrale HTML-Übersicht befindet sich unter outputs/reports/index.html. Von dort aus können die individuellen Berichte und die Gruppenanalyse aufgerufen werden.
 
