@@ -1,0 +1,13 @@
+numpy
+pandas
+scipy
+matplotlib
+mne
+pyyaml
+jinja2
+pytest
+plotly
+pillow
+imageio
+openpyxl
+xlrd
