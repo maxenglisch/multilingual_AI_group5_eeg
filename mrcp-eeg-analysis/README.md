@@ -297,3 +297,8 @@ Die vollständige Testsuite kann im Hauptverzeichnis des Projekts mit folgendem 
 ```powershell
 python -m pytest
 ```
+
+## Beitragende
+
+**Jinghao Zhang**  
+MRCP-EEG/EMG-Analyse, Pipeline-Integration, Visualisierung und Reporting.
