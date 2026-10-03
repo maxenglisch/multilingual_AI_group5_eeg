@@ -444,6 +444,11 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 │   ├── 01_check_data.ipynb
 │   └── environment.yml
 ├── legacy_synthetic_exports/          ← synthetische Emotion-Zustände + HTML-Demo
+├── mrcp-eeg-analysis/                 ← MRCP-Pipeline zur EEG/EMG-Analyse und Visualisierung
+│   ├── src/                           ← Verarbeitung, MRCP-Analyse, Reports und Videos
+│   ├── config/                        ← zentrale Dataset-Konfiguration
+│   ├── tests/                         ← automatisierte Tests
+│   └── README.md                      ← Installation, Verwendung und Outputs
 └── synthetic_emotivexport/            ← EmotivPRO-ähnlicher Dummy-Export + Importer
 ```
 
