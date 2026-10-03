@@ -1,0 +1,114 @@
+sampling_rates:
+  eeg: 128.0
+  emg: 440.0
+units:
+  eeg_input: uV
+  eeg_mne: V
+  emg: ADC units
+eeg:
+  sampling_rate: 128.0
+  input_unit: uV
+  mne_unit: V
+  expected_channel_count: 32
+  channel_columns: ["2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33"]
+  channel_names: [AF3, AF4, F3, F1, Fz, F2, F4, FC3, FC1, FCz, FC2, FC4, C3, C1, Cz, C2, C4, CP3, CP1, CPz, CP2, CP4, P3, P1, Pz, P2, P4, PO3, POz, PO4, O1, O2]
+  excluded_columns: [Triggers, "0", "1", "34", "35", "36", "37"]
+  source_columns: {start: 2, end: 33}
+  # The public CSV has anonymous columns. This explicit mapping follows the
+  # highlighted 32-electrode layout in Document/EEG.pdf; it is never inferred.
+  column_mapping:
+    "2": AF3
+    "3": AF4
+    "4": F3
+    "5": F1
+    "6": Fz
+    "7": F2
+    "8": F4
+    "9": FC3
+    "10": FC1
+    "11": FCz
+    "12": FC2
+    "13": FC4
+    "14": C3
+    "15": C1
+    "16": Cz
+    "17": C2
+    "18": C4
+    "19": CP3
+    "20": CP1
+    "21": CPz
+    "22": CP2
+    "23": CP4
+    "24": P3
+    "25": P1
+    "26": Pz
+    "27": P2
+    "28": P4
+    "29": PO3
+    "30": POz
+    "31": PO4
+    "32": O1
+    "33": O2
+emg:
+  sampling_rate: 440.0
+  software_filter_enabled: false
+  bandpass: [20.0, 200.0]
+  notch: 60.0
+  envelope_lowpass: 5.0
+  onset:
+    baseline_window_s: [-1.0, -0.2]
+    search_window_s: [-0.5, 1.5]
+    threshold_method: baseline_std
+    threshold_multiplier: 3.0
+    minimum_duration_s: 0.05
+preprocessing:
+  reference: average
+  mrcp_low_hz: 0.1
+  mrcp_high_hz: 1.0
+epochs:
+  tmin_s: -2.0
+  tmax_s: 2.0
+  baseline_start_s: -2.0
+  baseline_end_s: -1.5
+  pre_start_s: -1.0
+  pre_end_s: 0.0
+  movement_start_s: 0.0
+  movement_end_s: 1.0
+  post_start_s: 1.0
+  post_end_s: 2.0
+triggers:
+  768: trial_start
+  771: preparation_start
+  7711: movement_start
+  7712: movement_end
+  1000: trial_end
+  32766: session_boundary
+trigger_codes:
+  trial_start: 768
+  preparation: 771
+  movement_start: 7711
+  movement_end: 7712
+  trial_end: 1000
+  session_boundary: 32766
+mrcp:
+  channels: [FC3, FC1, FCz, C3, C1, Cz, CP3, CP1, CPz]
+  feature_channels: [FC3, FC1, FCz, FC2, FC4, C3, C1, Cz, C2, C4, CP3, CP1, CPz, CP2, CP4]
+  regions:
+    left: [FC3, FC1, C3, C1, CP3, CP1]
+    midline: [FCz, Cz, CPz]
+    right: [FC2, FC4, C2, C4, CP2, CP4]
+  lock: movement
+  movement:
+    event_code: 7711
+    tmin: -2.0
+    tmax: 2.0
+    baseline: [-2.0, -1.5]
+  preparation:
+    event_code: 771
+    tmin: -1.0
+    tmax: 7.0
+    baseline: [-1.0, -0.5]
+  bandpass: [0.1, 1.0]
+  butterworth_order: 4
+  use_car: true
+  use_csd: false
