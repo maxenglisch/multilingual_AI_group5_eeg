@@ -42,6 +42,7 @@ JSON für die Oberfläche erzeugen (ohne Argument: der Standard-Export):
 ```bash
 python flex2_export_json.py
 ```
+(synthetic_emotivexport aus dem repo wird verwendet!!!)
 
 Dann `eeg_state_playback.html` im Browser öffnen und unter **Load recording**
 die Datei aus `exports/` wählen.
