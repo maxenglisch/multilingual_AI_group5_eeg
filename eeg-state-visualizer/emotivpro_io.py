@@ -66,9 +66,6 @@ PM_METRICS: tuple[str, ...] = (
 PM_FIELDS: tuple[str, ...] = ("IsActive", "Scaled", "Raw", "Min", "Max")
 
 
-LINE_FREQ_HZ = 50.0
-
-
 NON_SENSOR_EEG_COLUMNS: frozenset[str] = frozenset({
     "EEG.Counter", "EEG.Interpolated", "EEG.RawCq",
     "EEG.Battery", "EEG.BatteryPercent", "EEG.MarkerHardware",
@@ -78,8 +75,6 @@ NON_SENSOR_EEG_COLUMNS: frozenset[str] = frozenset({
 CQ_OVERALL_MIN = 60.0
 EQ_SAMPLERATE_INVALID = -1.0
 
-
-STIM_CH = "STI 014"
 
 _META_SFREQ_KEYS = ("samplingrate", "samplerate", "srate", "fs")
 _NORM_RE = re.compile(r"[^a-z0-9]")
@@ -369,46 +364,6 @@ class EmotivProRecording:
             out[f"{metric}.IsActive"] = active.astype(int)
         return pd.DataFrame(out, index=self.df.index)
 
-    def to_mne_raw(self, montage_name: str = "standard_1005",
-                   with_stim: bool = True, strict: bool = True):
-        """Raw EEG as ``mne.io.RawArray`` in volts, with montage and markers."""
-        import mne
-        mne.set_log_level("ERROR")
-
-        data = self.eeg_microvolts(strict=strict).to_numpy(dtype=float).T * 1e-6
-        names, types = list(self.sensors), ["eeg"] * len(self.sensors)
-        if with_stim:
-            data = np.vstack([data, np.zeros((1, data.shape[1]))])
-            names.append(STIM_CH)
-            types.append("stim")
-
-        info = mne.create_info(names, sfreq=self.sfreq, ch_types=types)
-        raw = mne.io.RawArray(data, info, verbose=False)
-
-        events = self.marker_events()
-
-        # a stim channel cannot hold 0
-        stim_events = events[events["value"] != 0] if not events.empty else events
-        if with_stim and not stim_events.empty:
-            raw.add_events(np.column_stack([
-                stim_events["sample"].to_numpy(int),
-                np.zeros(len(stim_events), int),
-                stim_events["value"].to_numpy(int),
-            ]), stim_channel=STIM_CH)
-        if not events.empty:
-            raw.set_annotations(mne.Annotations(
-                onset=events["time_s"].to_numpy(float),
-                duration=np.zeros(len(events)),
-                description=[f"{t}:{v}" for t, v
-                             in zip(events["type"], events["value"].astype(int))],
-            ))
-        try:
-            raw.set_montage(mne.channels.make_standard_montage(montage_name),
-                            match_case=False, on_missing="warn")
-        except Exception as exc:
-            self.warnings.append(f"Montage {montage_name!r} not set: {exc}")
-        return raw
-
 
 class EmotivProCsvReader:
     """Reads the raw structure of an EmotivPRO export."""
@@ -635,6 +590,6 @@ __all__ = [
     "NonNumericDataError", "BadQualitySegment", "UnsupportedHeadsetLayoutWarning",
     "EmotivProRecording", "EmotivProCsvReader", "EmotivProSchemaValidator",
     "FLEX2_SENSORS", "POW_BANDS", "PM_METRICS", "PM_FIELDS",
-    "LINE_FREQ_HZ", "NON_SENSOR_EEG_COLUMNS", "CQ_OVERALL_MIN",
-    "EQ_SAMPLERATE_INVALID", "STIM_CH",
+    "NON_SENSOR_EEG_COLUMNS", "CQ_OVERALL_MIN",
+    "EQ_SAMPLERATE_INVALID",
 ]

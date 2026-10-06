@@ -1,9 +1,4 @@
 # Core of the pipeline
 numpy
 pandas
-scipy          # required by mne also used for band power
-mne            
-matplotlib    
-
-# (Optional) only for the "pyprep" step in preprocess_raw
-# pyprep
+scipy          # used for band power

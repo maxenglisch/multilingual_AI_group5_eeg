@@ -46,13 +46,7 @@ python flex2_export_json.py
 Dann `eeg_state_playback.html` im Browser öffnen und unter **Load recording**
 die Datei aus `exports/` wählen.
 
-Topografie je Segment und Frequenzband als PNG:
-
-```bash
-python flex2_mne_pipeline.py
-```
-
-Beide Werkzeuge nehmen auch eine eigene Aufnahme:
+Das Werkzeug nimmt auch eine eigene Aufnahme:
 
 ```bash
 python flex2_export_json.py aufnahme.csv
