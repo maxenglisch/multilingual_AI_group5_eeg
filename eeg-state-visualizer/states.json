@@ -1,0 +1,427 @@
+{
+  "version": 1,
+  "note": "Single source of truth for the state definitions.",
+  "states": [
+    {
+      "id": "overview",
+      "label": "Overview",
+      "summary": "All electrodes the device can record, without any state assignment.",
+      "mappings": [],
+      "segment_labels": [
+        "neutral",
+        "neutral_baseline"
+      ]
+    },
+    {
+      "id": "focus",
+      "label": "Focus / Attention",
+      "summary": "Sustained, focused attention. Key indicator: frontal midline theta plus frontal beta.",
+      "mappings": [
+        {
+          "el": "Fz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Frontal midline theta rises with sustained attention and cognitive control."
+        },
+        {
+          "el": "FCz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Second generator of frontal midline theta, evaluate together with Fz."
+        },
+        {
+          "el": "Cz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Basis for the theta/beta ratio as an attention index."
+        },
+        {
+          "el": "F3",
+          "band": "lowbeta",
+          "trend": "up",
+          "note": "Increased low-beta activity during active, focused processing."
+        },
+        {
+          "el": "F4",
+          "band": "lowbeta",
+          "trend": "up",
+          "note": "Increased low-beta activity during active, focused processing."
+        }
+      ],
+      "pm": "Focus",
+      "segment_labels": [
+        "focus",
+        "focus_attention"
+      ]
+    },
+    {
+      "id": "relaxation",
+      "label": "Relaxation / Rest",
+      "summary": "Relaxed wakefulness. Key indicator: rise of posterior alpha.",
+      "mappings": [
+        {
+          "el": "O1",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Posterior alpha rises in relaxed wakefulness, especially with eyes closed."
+        },
+        {
+          "el": "O2",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Posterior alpha rises in relaxed wakefulness, especially with eyes closed."
+        },
+        {
+          "el": "POz",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Occipitoparietal alpha as a sensitive rest indicator."
+        },
+        {
+          "el": "Pz",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietal alpha rises as attention fades / during relaxation."
+        },
+        {
+          "el": "P3",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietal alpha (left) compare with P4 for lateralisation."
+        },
+        {
+          "el": "P4",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietal alpha (right) compare with P3 for lateralisation."
+        }
+      ],
+      "pm": "Relaxation",
+      "segment_labels": [
+        "relaxation",
+        "relaxation_alpha"
+      ]
+    },
+    {
+      "id": "workload",
+      "label": "Mental workload / Working memory",
+      "summary": "Cognitive load, Key indicator: frontal theta rises, parietal alpha is suppressed.",
+      "mappings": [
+        {
+          "el": "Fz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Frontal theta rises with memory and task load."
+        },
+        {
+          "el": "FCz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Together with Fz it strengthens the load effect in frontal midline theta."
+        },
+        {
+          "el": "Pz",
+          "band": "alpha",
+          "trend": "down",
+          "note": "Parietal alpha is suppressed as load increases."
+        },
+        {
+          "el": "P3",
+          "band": "alpha",
+          "trend": "down",
+          "note": "Alpha suppression (left) as a load indicator."
+        },
+        {
+          "el": "P4",
+          "band": "alpha",
+          "trend": "down",
+          "note": "Alpha suppression (right) as a load indicator."
+        }
+      ],
+      "pm": "Engagement"
+    },
+    {
+      "id": "valence",
+      "label": "Emotional valence (frontal asymmetry)",
+      "summary": "Approach vs. withdrawal via frontal alpha asymmetry.",
+      "mappings": [
+        {
+          "el": "F3",
+          "band": "alpha",
+          "trend": "asym",
+          "note": "Left frontal alpha. Less alpha on the left = more activity = approach / positive affect."
+        },
+        {
+          "el": "F4",
+          "band": "alpha",
+          "trend": "asym",
+          "note": "Right frontal alpha, counterpart of the asymmetry index."
+        },
+        {
+          "el": "AF3",
+          "band": "alpha",
+          "trend": "asym",
+          "note": "Additional left frontal site to stabilise the asymmetry measure."
+        },
+        {
+          "el": "AF4",
+          "band": "alpha",
+          "trend": "asym",
+          "note": "Additional right frontal site to stabilise the asymmetry measure."
+        }
+      ]
+    },
+    {
+      "id": "vigilance",
+      "label": "Vigilance / Drowsiness",
+      "summary": "Declining alertness. Key indicator: diffuse rise of theta (and slow alpha).",
+      "mappings": [
+        {
+          "el": "Cz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Diffuse theta rise as an early sign of fatigue."
+        },
+        {
+          "el": "Pz",
+          "band": "theta",
+          "trend": "up",
+          "note": "Centroparietal theta rise as vigilance drops."
+        },
+        {
+          "el": "O1",
+          "band": "alpha",
+          "trend": "mix",
+          "note": "Slowing of occipital alpha."
+        },
+        {
+          "el": "O2",
+          "band": "alpha",
+          "trend": "mix",
+          "note": "Slowing of occipital alpha."
+        }
+      ]
+    },
+    {
+      "id": "smr",
+      "label": "Calm focus (SMR)",
+      "summary": "Alert but motor-quiet state. Key indicator: sensorimotor rhythm over the motor cortex.",
+      "mappings": [
+        {
+          "el": "C3",
+          "band": "smr",
+          "trend": "up",
+          "note": "Sensorimotor rhythm (left)."
+        },
+        {
+          "el": "Cz",
+          "band": "smr",
+          "trend": "up",
+          "note": "Central SMR over the vertex."
+        },
+        {
+          "el": "C4",
+          "band": "smr",
+          "trend": "up",
+          "note": "Sensorimotor rhythm (right)."
+        }
+      ]
+    },
+    {
+      "id": "motor_right",
+      "label": "Motor right (movement / imagery)",
+      "summary": "Movement or motor imagery of the right side of the body. Activates the left motor cortex contralaterally. mu/beta drop during movement (ERD), followed by a beta rebound (ERS).",
+      "mappings": [
+        {
+          "el": "C3",
+          "band": "mu",
+          "trend": "down",
+          "note": "Contralateral (left) over the hand area: mu ERD during movement/imagery. Beta (13–30 Hz) also drops, with a rebound after stopping. Primary electrode."
+        },
+        {
+          "el": "FC3",
+          "band": "mu",
+          "trend": "down",
+          "note": "Reinforces the mu and beta ERD pattern over C3."
+        },
+        {
+          "el": "CP3",
+          "band": "mu",
+          "trend": "down",
+          "note": "Posterior to the hand area."
+        }
+      ]
+    },
+    {
+      "id": "motor_left",
+      "label": "Motor left (movement / imagery)",
+      "summary": "Movement or motor imagery of the left side of the body. Activates the right motor cortex contralaterally: mu/beta drop during movement (ERD), followed by a beta rebound (ERS).",
+      "mappings": [
+        {
+          "el": "C4",
+          "band": "mu",
+          "trend": "down",
+          "note": "Contralateral (right) over the hand area: mu ERD during movement/imagery. Beta (13–30 Hz) also drops, with a rebound after stopping. Primary electrode."
+        },
+        {
+          "el": "FC4",
+          "band": "mu",
+          "trend": "down",
+          "note": "Reinforces the mu and beta ERD pattern over C4."
+        },
+        {
+          "el": "CP4",
+          "band": "mu",
+          "trend": "down",
+          "note": "Posterior to the hand area."
+        }
+      ]
+    },
+    {
+      "id": "motor_legs",
+      "label": "Motor legs / feet",
+      "summary": "Movement of the lower limbs.",
+      "mappings": [
+        {
+          "el": "Cz",
+          "band": "mu",
+          "trend": "down",
+          "note": ""
+        },
+        {
+          "el": "FCz",
+          "band": "mu",
+          "trend": "down",
+          "note": "Extends the medial ERD pattern."
+        },
+        {
+          "el": "CPz",
+          "band": "mu",
+          "trend": "down",
+          "note": "Extends the medial ERD pattern."
+        }
+      ]
+    },
+    {
+      "id": "creative",
+      "label": "Creative thinking (divergent)",
+      "summary": "Divergent, idea-generating thinking. Key indicator: rise of alpha over frontal and parietal areas.",
+      "mappings": [
+        {
+          "el": "Fz",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Frontal alpha rises during internal, idea-generating attention."
+        },
+        {
+          "el": "F3",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Frontal alpha (left) rises during creative ideation."
+        },
+        {
+          "el": "F4",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Frontal alpha (right) rises during creative ideation."
+        },
+        {
+          "el": "Pz",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietal alpha rises."
+        },
+        {
+          "el": "P3",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietal alpha (left) rises during divergent thinking."
+        },
+        {
+          "el": "P4",
+          "band": "alpha",
+          "trend": "up",
+          "note": "Parietal alpha (right) rises during divergent thinking."
+        }
+      ]
+    },
+    {
+      "id": "excitement",
+      "label": "Excitement / Arousal",
+      "summary": "Sudden sympathetic activation (joy, startle, fight-or-flight): abrupt rise in high-frequency activity with suppression of slow waves. Emotiv composite metric – the electrodes approximate its multi-channel computation.",
+      "mappings": [
+        {
+          "el": "AF3",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Anterior frontal (left): rapid high-beta rise during arousal, alpha is suppressed. Emotiv measures widely in practice (including temporal T7/T8 not available here)."
+        },
+        {
+          "el": "AF4",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Anterior frontal (right)."
+        },
+        {
+          "el": "F3",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Frontal (left): high-frequency activity rises phasically. Gamma (25–45 Hz) would theoretically be involved but is unreliable with this device."
+        },
+        {
+          "el": "F4",
+          "band": "highbeta",
+          "trend": "up",
+          "note": "Frontal (right): high-beta rise during sudden arousal."
+        }
+      ],
+      "pm": "Excitement",
+      "segment_labels": [
+        "excitement",
+        "excitement_arousal"
+      ]
+    },
+    {
+      "id": "stress",
+      "label": "Stress / Frustration",
+      "summary": "Cognitive overload: sustained high beta without regulating alpha pauses. Key indicator is the persistent frontocentral high beta coupled with an alpha drop.",
+      "mappings": [
+        {
+          "el": "Fz",
+          "band": "highbeta",
+          "trend": "up",
+          "note": ""
+        },
+        {
+          "el": "F3",
+          "band": "highbeta",
+          "trend": "up",
+          "note": ""
+        },
+        {
+          "el": "F4",
+          "band": "highbeta",
+          "trend": "up",
+          "note": ""
+        },
+        {
+          "el": "FCz",
+          "band": "highbeta",
+          "trend": "up",
+          "note": ""
+        },
+        {
+          "el": "Cz",
+          "band": "highbeta",
+          "trend": "up",
+          "note": ""
+        }
+      ],
+      "pm": "Stress",
+      "segment_labels": [
+        "stress",
+        "stress_frustration"
+      ]
+    }
+  ]
+}
