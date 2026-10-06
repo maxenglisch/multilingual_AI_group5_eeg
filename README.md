@@ -4,7 +4,7 @@
 **Gruppe 5:** Maximilian Englisch, Grischa Staar, Lawan Mai, Jinghao Zhang
 **Betreuung / Feedback:** Bagci, Baumartz  
 
-Dieses Repository und diese `README.md` bilden die **Abschlussdokumentation** unseres EEG-Projekts. Enthalten sind EEG-Grundlagen, Recherche, Datensatzbewertung, Preprocessing-Entscheidungen, ein Pipeline-Prototyp auf Basis realer Emotiv-Flex-2-Daten, synthetische Emotion-/Kognitionsdaten sowie (später ergänzt) die Visualisierungsdemos.
+Dieses Repository und diese `README.md` bilden die **Abschlussdokumentation** unseres EEG-Projekts. Enthalten sind EEG-Grundlagen, Recherche, Datensatzbewertung, Preprocessing-Entscheidungen, ein Pipeline-Prototyp auf Basis realer Emotiv-Flex-2-Daten, synthetische Emotion-/Kognitionsdaten sowie Visualisierungsdemos.
 
 Begleitende Materialien liegen unter [`presentations/`](presentations/):
 
@@ -35,16 +35,16 @@ Da das physische Gerät anfangs noch nicht zuverlässig für eigene Aufnahmen zu
 
 ## 2. Team und Aufteilung
 
-Grundprinzip: **Alle haben an allem mitgearbeitet** – Datensätze suchen, Pipelines ausprobieren, Tests schreiben, Visualisierungen anfassen. Gegen Ende haben wir Schwerpunkte geschärft:
+Grundprinzip: **Alle haben an allem mitgearbeitet** – Datensätze suchen, Pipelines ausarbeiten, Tests schreiben, Visualisierungen anfassen. Gegen Ende haben wir Schwerpunkte geschärft:
 
 | Person | Schwerpunkt | Mitwirkung darüber hinaus |
 | --- | --- | --- |
 | **Max** | Datensatz-Recherche, Pipeline-Vergleich, MNE/PyPREP-Entscheidung, Pipeline-Prototyp, Abschlussdoku | Synthetische Daten, Visualisierungen, Tests |
 | **Grischa** | Synthetische Emotion-/Kognitionsdaten, EmotivPRO-Export-Dummy, Mapping mentale Zustände ↔ Bänder/Elektroden | Dataset-Recherche, Pipeline, HTML-Anbindung |
-| **Lawan** | HTML-Visualisierung / interaktive Zustandsdarstellung (Hauptfokus) | Research, Feedback-Einbau (u. a. Videoanalyse) |
+| **Lawan** | EEG-Zustands-Visualisierung / interaktive Zustandsdarstellung (Hauptfokus) | Research, Feedback-Einbau, Klassifikation |
 | **Jinghao** | Dataset-Visualisierung (Hauptfokus) | Research, Pipeline-Tests, gemeinsame Demos |
 
-Die Abschnitte zu Lawans HTML-Demo und Jinghaos Dataset-Visualisierung werden in dieser Doku noch ergänzt; der vorliegende Stand dokumentiert vor allem den **Research- und Daten-/Pipeline-Teil** (Max & Grischa).
+Der Abschnitt zu Jinghaos Dataset-Visualisierung wird in dieser Doku noch ergänzt.
 
 ---
 
@@ -122,7 +122,7 @@ Diese Zuordnung erklärt auch unsere Projektentscheidungen:
 
 - Beim **Hand-Gesture-Datensatz** schauen wir vor allem auf **C3 / frontozentrale** Kanäle und Mu/Beta (Motorik rechts).  
 - Bei den **synthetischen Emotion-/Kognitionsdaten** modellieren wir u. a. frontale Alpha-Asymmetrie, Frontal-Midline-Theta (Fokus) und okzipitales Alpha (Entspannung) – passend zu den Zeilen oben.  
-- Die **HTML-Demo** färbt genau diese Elektroden/Bänder je Zustand ein.
+- Der **EEG State Visualizer** ([`eeg-state-visualizer/`](eeg-state-visualizer/)) setzt diese Zuordnung für die synthethischen Emotion-/Kognitionsdaten um: Die Zustände mit ihren Elektroden, Bändern und Trends sind in [`states.json`](eeg-state-visualizer/states.json) definiert, die Oberfläche färbt die Elektroden je Zustand ein.
 
 ### 3.5 Kurz: von der Kurve zur Aussage
 
@@ -394,7 +394,133 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 
 ---
 
-## 7. Was bisher umgesetzt ist (Stand Research + Daten)
+## 7. EEG State Visualizer
+
+Ordner: [`eeg-state-visualizer/`](eeg-state-visualizer/)  
+Details zur Bedienung: [`eeg-state-visualizer/README.md`](eeg-state-visualizer/README.md)
+
+### 7.1 Ziel
+
+Der State Visualizer macht aus einer EmotivPRO-Aufnahme des **Flex 2** (32 Kanäle) eine **abspielbare Topografie im Browser**: Für jeden mentalen Zustand aus Kapitel 3.4 zeigt er, welche Elektroden in welchem Frequenzband gerade wie stark vom Ruhewert abweichen und wie gut das Muster zum Zustand passt.
+
+Er ist das Bindeglied zwischen Daten und Darstellung: Er liest das Schema aus `synthetic_emotivexport/` (Kapitel 6.4) und arbeitet damit direkt auf EmotivPRO-Exportdaten.
+
+![EEG State Visualizer: Zustand „Stress / Frustration" mit den relevanten Elektroden auf der Topografie](eeg-state-visualizer/screenshot.png)
+
+*Oberfläche des State Visualizers: oben die Zustandsauswahl, links die Topografie mit den für den Zustand relevanten Elektroden (hier Stress: High Beta ↑ an Fz, F3, F4, FCz, Cz), rechts Begründung, Band und Richtung je Elektrode.*
+
+### 7.2 Datenfluss
+
+```text
+EmotivPRO-CSV (V2)
+        ↓  emotivpro_io.py      Parser + Schema-Validierung + Qualitätsprüfung
+Aufnahme (EEG, POW, PM, CQ/EQ, Marker)
+        ↓  eeg_states.py        z-Wert gegen Ruhefenster, Score je Zustand (states.json)
+Zustands-Scores pro Segment und pro Frame
+        ↓  flex2_export_json.py JSON (eeg-playback/2) in exports/
+eeg_state_playback.html         Abspielen, Zustand und Band wählen, Segmentergebnis
+```
+
+| Datei | Rolle |
+| --- | --- |
+| `emotivpro_io.py` | Liest EmotivPRO-CSV, validiert Metadaten, Pflichtspalten und Zahlen, wertet CQ/EQ als Qualitätsgrenze aus |
+| `eeg_states.py` | Berechnet für jeden Zustand den Score aus der Bandleistung |
+| `states.json` | Zentrale Definition aller Zustände (Elektroden, Band, Richtung, Hinweistext) |
+| `flex2_export_json.py` | Verbindet beides und schreibt das JSON für die Oberfläche |
+| `eeg_state_playback.html` | Oberfläche, läuft ohne Server direkt im Browser |
+
+### 7.3 Eingabe und Validierung
+
+Verbindlicher Standard ist das Format in `synthetic_emotivexport/`. Das Tool nimmt zusätzlich das **Hand-Gesture-Set**, das nur Roh-EEG, CQ, EQ und Marker enthält. Fehlen die `POW.*`-Spalten, wird die Bandleistung aus dem Roh-EEG berechnet (`scipy`).
+
+Aufnahmen, die nicht zum Format passen, werden mit einer eigenen Fehlerklasse abgelehnt statt stillschweigend verarbeitet:
+
+| Fehler | Auslöser |
+| --- | --- |
+| `MissingMetadataError` | keine Metadatenzeile |
+| `MissingRequiredColumnError` | Pflichtspalte fehlt |
+| `NonNumericDataError` | Text in numerischen Kanälen |
+| `BadQualitySegment` | Segment besteht die Qualitätsprüfung nicht |
+
+Diese Fälle entsprechen den Negativtests in `synthetic_emotivexport/error_cases/`.
+
+**Qualitätsprüfung:** Ein Sample zählt nur, wenn `CQ.Overall` mindestens 60 ist und die Abtastratenqualität (`EQ.SampleRateQuality`) gültig ist. Ein Segment mit weniger als 50 % brauchbarer Samples wird nicht bewertet.
+
+### 7.4 Zustände
+
+Die Zustände stehen in [`states.json`](eeg-state-visualizer/states.json) und gehen über die acht Zeilen aus Kapitel 3.4 hinaus. Hinzugekommen sind Workload, Vigilance und SMR sowie Excitement und Stress als eigene Zustände.
+
+| Zustand (`id`) | Elektroden | Band | Richtung |
+| --- | --- | --- | --- |
+| Fokus / Aufmerksamkeit (`focus`) | Fz, FCz, Cz | Theta | ↑ |
+| | F3, F4 | Low Beta | ↑ |
+| Entspannung (`relaxation`) | O1, O2, POz, Pz, P3, P4 | Alpha | ↑ |
+| Workload (`workload`) | Fz, FCz | Theta | ↑ |
+| | Pz, P3, P4 | Alpha | ↓ |
+| Valenz (`valence`) | F3, F4, AF3, AF4 | Alpha | Asymmetrie |
+| Vigilanz / Müdigkeit (`vigilance`) | Cz, Pz | Theta | ↑ |
+| | O1, O2 | Alpha | gemischt |
+| Ruhiger Fokus (`smr`) | C3, Cz, C4 | SMR | ↑ |
+| Motorik rechts (`motor_right`) | C3, FC3, CP3 | Mu | ↓ |
+| Motorik links (`motor_left`) | C4, FC4, CP4 | Mu | ↓ |
+| Motorik Beine (`motor_legs`) | Cz, FCz, CPz | Mu | ↓ |
+| Kreatives Denken (`creative`) | Fz, F3, F4, Pz, P3, P4 | Alpha | ↑ |
+| Excitement (`excitement`) | AF3, AF4, F3, F4 | High Beta | ↑ |
+| Stress (`stress`) | Fz, F3, F4, FCz, Cz | High Beta | ↑ |
+
+Dazu kommt die Ansicht `overview`, die alle Elektroden ohne Zustandszuordnung zeigt.
+
+### 7.5 Frequenzbänder
+
+EmotivPRO liefert nur fünf Bänder. Die Bänder der Oberfläche werden darauf abgebildet:
+
+| Oberfläche | EmotivPRO | Anmerkung |
+| --- | --- | --- |
+| Theta | `Theta` (4–8 Hz) | |
+| Alpha | `Alpha` (8–12 Hz) | |
+| Mu | `Alpha` | EmotivPRO hat kein Mu-Band |
+| SMR, Low Beta | `BetaL` (12–16 Hz) | SMR hat kein eigenes Band |
+| High Beta | `BetaH` (16–25 Hz) | |
+| Gamma | `Gamma` (25–45 Hz) | mit diesem Setup EMG-anfällig |
+| Delta | – | wird nicht exportiert, bleibt unbewertet |
+
+### 7.6 Wie der Score entsteht
+
+Es gibt **keinen trainierten Klassifikator**. Der Score misst, wie gut ein Bandleistungsmuster zur erwarteten Richtung passt:
+
+1. **Ruhewert:** Mittelwert und Streuung je Elektrode und Band aus einem Ruhefenster. Das ist bevorzugt das Segment mit dem Label `neutral` bzw. `baseline`, sonst die Zeit vor dem ersten Marker, sonst alle brauchbaren Samples.
+2. **z-Wert** je Zuordnung: Abweichung des aktuellen Fensters vom Ruhewert, in Streuungen.
+3. **Richtung:** Bei `up` zählt der z-Wert, bei `down` der negative z-Wert, bei `mix` der Betrag mit halbem Gewicht.
+4. **Zustandswert:** Mittelwert über alle messbaren Zuordnungen des Zustands. Ein Wert von 2 entspricht dem vollen Ausschlag.
+5. **Valenz** ist ein Sonderfall: Aus den Alpha-Werten rechts minus links ergibt sich ein Asymmetrieindex. Positiv bedeutet mehr Alpha rechts, also linke Hemisphäre aktiver (Annäherung), negativ bedeutet Rückzug.
+6. **Normierung:** Die Zustände werden untereinander auf 0 bis 1 normiert. Schlägt keiner über die Schwelle von z = 1 aus, bleiben alle Balken klein.
+7. **Erkannt** gilt ein Zustand nur, wenn z ≥ 1, der normierte Score ≥ 0,5 ist und mindestens zwei Zuordnungen messbar waren.
+
+In der Oberfläche zeigen die Balken den Score des **aktuellen Frames** (ein kurzes Fenster, daher schwanken sie). Das **Häkchen** ist das Ergebnis für das **ganze Segment**. Ein einzelner Frame ist für ein eigenes Urteil zu verrauscht.
+
+### 7.7 Bedienung
+
+```bash
+pip install -r requirements.txt
+python flex2_export_json.py                 # Standard-Export aus synthetic_emotivexport/
+python flex2_export_json.py aufnahme.csv    # eigene Aufnahme
+```
+
+Danach `eeg_state_playback.html` im Browser öffnen und unter **Choose file** die erzeugte JSON aus `exports/` wählen. Benötigt werden nur `numpy`, `pandas` und `scipy`.
+
+<!-- TODO Lawan: Videoanalyse / eingebautes Feedback hier beschreiben (was war das Feedback, was wurde geändert?) -->
+
+### 7.8 Grenzen und Entscheidungen
+
+- **Nicht validiert:** Der Score zeigt nur, wie gut das Muster passt. Er ist keine Diagnose und kein Emotionsklassifikator. Auf den synthetischen Daten (Kapitel 6) ist das ein Test der Darstellung, kein Beleg für reale Wirkung.
+- **Mu und SMR sind Ersatzbänder** (Alpha bzw. Low Beta). Deshalb schlagen die drei Motorik-Zustände auch an, wenn Alpha nur global einbricht statt sensomotorisch.
+- **Gamma** ist mit diesem Setup EMG-anfällig, frontopolare Kanäle sind artefaktreich.
+- **Delta** wird von EmotivPRO nicht exportiert und bleibt unbewertet.
+- **Keine MNE-Abhängigkeit:** Eine MNE-Pipeline war zunächst Teil des Ordners und wurde wieder entfernt, weil für Scoring und Oberfläche die Bandleistung genügt.
+
+---
+
+## 8. Was bisher umgesetzt ist (Stand Research + Daten)
 
 | Baustein | Status | Ort |
 | --- | --- | --- |
@@ -406,14 +532,14 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 | Synthetische Emotion-Daten + HTML-Demo-Anbindung | erledigt (Demo-Qualität) | `legacy_synthetic_exports/` |
 | EmotivPRO-Dummy + MNE-Import + Error Cases | erledigt | `synthetic_emotivexport/` |
 | Klassifikation Zustände/Bänder | erledigt als Übersicht | `presentations/klassifizierung.xlsx` |
-| HTML-Visualisierung (Lawan, Feedback Videoanalyse) | folgt in Doku | später ergänzen |
+| Zustands-Visualisierung (HTML-Playback) | erledigt | `eeg_state_visualisation/` |
 | Dataset-Visualisierung (Jinghao) | folgt in Doku | später ergänzen |
 | PyPREP voll in Pipeline integriert | teilweise / offen | nächster technischer Schritt |
 | Eigene Aufnahmen mit Uni-Flex-2 | abhängig von Geräteverfügbarkeit | offen |
 
 ---
 
-## 8. Probleme und offene Punkte
+## 9. Probleme und offene Punkte
 
 **Probleme / Learnings**
 
@@ -421,17 +547,19 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 - Alljoined zeigt Hardware-Fit, sprengt aber Seminar-Scope.  
 - Hand-Gesture-CSVs nutzen nummerierte Spalten (`2`…`33`); für Topomaps/PyPREP braucht es ein sauberes **10-10-Kanalnamen-Mapping** (im synthetischen Emotion-Export und EmotivPRO-Dummy bereits als AF3…O2 modelliert).  
 - Synthetische Emotion-Muster sind **didaktisch**, nicht validiert – das muss in Präsi und Doku transparent bleiben.  
+- **EmotivPRO liefert kein Mu- und kein Delta-Band.** Mu wird in der Visualisierung auf Alpha abgebildet, Delta bleibt unbewertet. Dadurch schlagen die Motorik-Zustände auch bei global sinkendem Alpha leicht an.
+- Gamma ist mit diesem Setup EMG-anfällig und daher nur eingeschränkt aussagekräftig.
 
 **Noch zu tun**
 
-- Abschnitte zu **Lawans HTML** (inkl. eingebautem Feedback, Videoanalyse) und **Jinghaos Dataset-Visualisierung** hier ergänzen.  
+- Abschnitt zu **Jinghaos Dataset-Visualisierung** hier ergänzen.
 - PyPREP-Stufe (Bad Channels, robuste Referenz) fest in den Prototyp hängen.  
 - Ggf. echte Flex-2-Aufnahmen (sobald Gerät verfügbar) gegen die gleiche Pipeline laufen lassen.  
 - READMEs der Visualisierungsordner finalisieren, Repo-Zugriff an Bagci/Baumartz, Abgabe Abschlussdoku / OLAT.
 
 ---
 
-## 9. Repo-Struktur (Überblick)
+## 10. Repo-Struktur (Überblick)
 
 ```text
 .
@@ -443,6 +571,14 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 │   ├── outputs/figures/               ← Evoked-Plots
 │   ├── 01_check_data.ipynb
 │   └── environment.yml
+├── eeg-state-visualizer/              ← Zustands-Scoring + abspielbare Topografie
+│   ├── emotivpro_io.py                ← EmotivPRO-CSV-Parser + Schema-Validierung
+│   ├── eeg_states.py                  ← Scoring der mentalen Zustände
+│   ├── flex2_export_json.py           ← CSV → Playback-JSON
+│   ├── states.json                    ← Zustandsdefinitionen (Elektroden, Bänder, Trend)
+│   ├── eeg_state_playback.html        ← Oberfläche zum Abspielen im Browser
+│   ├── exports/                       ← erzeugte JSON-Dateien
+│   └── README.md                      ← Bedienung, Band-Mapping, Score-Erklärung
 ├── legacy_synthetic_exports/          ← synthetische Emotion-Zustände + HTML-Demo
 ├── mrcp-eeg-analysis/                 ← MRCP-Pipeline zur EEG/EMG-Analyse und Visualisierung
 │   ├── src/                           ← Verarbeitung, MRCP-Analyse, Reports und Videos
@@ -454,7 +590,7 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 
 ---
 
-## 10. Quellen (Auswahl)
+## 11. Quellen (Auswahl)
 
 **Datensätze / Übersichten**
 
@@ -475,9 +611,8 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 
 ---
 
-## 11. Nächste Ergänzungen in dieser Doku
+## 12. Nächste Ergänzungen in dieser Doku
 
-1. **Lawan:** HTML-Visualisierung, eingebautes Feedback (Videoanalyse etc.), Screenshots.  
 2. **Jinghao:** Dataset-Visualisierung, Features, Screenshots.  
 3. Kurze **Beitragsmatrix** „wer hat was intensiver umgesetzt“ nach finaler Abstimmung.  
 4. Optional: kurze READMEs in den Visualisierungsordnern verlinken.
