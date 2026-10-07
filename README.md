@@ -1,12 +1,25 @@
 # Gruppe 5 – EEG Abschlussdokumentation
 
 **Seminar:** Multilingual AI · SoSe 2026  
-**Gruppe 5:** Maximilian Englisch, Grischa Staar, Lawan Mai, Jinghao Zhang
+**Gruppe 5:** Maximilian Englisch, Grischa Staar, Lawan Mai, Jinghao Zhang  
 **Betreuung / Feedback:** Bagci, Baumartz  
 
-Dieses Repository und diese `README.md` bilden die **Abschlussdokumentation** unseres EEG-Projekts. Enthalten sind EEG-Grundlagen, Recherche, Datensatzbewertung, Preprocessing-Entscheidungen, ein Pipeline-Prototyp auf Basis realer Emotiv-Flex-2-Daten, synthetische Emotion-/Kognitionsdaten sowie Visualisierungsdemos.
+Dieses Repository und diese `README.md` bilden die **Abschlussdokumentation** unseres EEG-Projekts. Enthalten sind EEG-Grundlagen, Recherche, Datensatzbewertung, Preprocessing-Entscheidungen, Pipeline-Prototypen auf Basis des Hand-Gesture-Datensatzes (Emotiv Flex 2), synthetische Emotion-/Kognitionsdaten sowie zwei Visualisierungslinien (Zustands-Playback und MRCP-/Dataset-Reports).
 
-Begleitende Materialien liegen unter [`presentations/`](presentations/):
+**Aufbau der Doku:** Diese Datei fasst Aufgabe, Team, Forschung und Ergebnisse zusammen. Pro Projektordner gibt es eine **Modul-README** mit Installation, Dateien und Bedienung – unten im Index verlinkt.
+
+### Dokumentationsindex (Modul-READMEs)
+
+| Modul | README | Inhalt |
+| --- | --- | --- |
+| [`presentations/`](presentations/) | [`presentations/README.md`](presentations/README.md) | Präsentationen, Pipeline-PDF, Klassifizierung Excel |
+| [`pipeline_prototype/`](pipeline_prototype/) | [`pipeline_prototype/README.md`](pipeline_prototype/README.md) | Früher MNE-Prototyp (CSV → Filter → Epochs → Plots) |
+| [`legacy_synthetic_exports/`](legacy_synthetic_exports/) | [`legacy_synthetic_exports/README.md`](legacy_synthetic_exports/README.md) | Synthetische Emotion-Zustände, Legacy-HTML-Demo |
+| [`synthetic_emotivexport/`](synthetic_emotivexport/) | [`synthetic_emotivexport/README.md`](synthetic_emotivexport/README.md) | EmotivPRO-V2-Dummy, Schema, MNE-Import, Error Cases |
+| [`eeg-state-visualizer/`](eeg-state-visualizer/) | [`eeg-state-visualizer/README.md`](eeg-state-visualizer/README.md) | Flex-2-Export → JSON → abspielbare Zustands-Topografie |
+| [`mrcp-eeg-analysis/`](mrcp-eeg-analysis/) | [`mrcp-eeg-analysis/README.md`](mrcp-eeg-analysis/README.md) | MRCP-Pipeline, HTML-Reports, Gruppenanalyse, Videos |
+
+Begleitende Materialien unter [`presentations/`](presentations/) (Übersicht: [`presentations/README.md`](presentations/README.md)):
 
 - [`presentations/EEG_AbschlussPräsi.pptx`](presentations/EEG_AbschlussPräsi.pptx) – Abschlusspräsentation  
 - [`presentations/Gruppe5_EEG_Präsi.pptx`](presentations/Gruppe5_EEG_Präsi.pptx) – Zwischenpräsentation  
@@ -44,7 +57,7 @@ Grundprinzip: **Alle haben an allem mitgearbeitet** – Datensätze suchen, Pipe
 | **Lawan** | EEG-Zustands-Visualisierung / interaktive Zustandsdarstellung (Hauptfokus) | Research, Feedback-Einbau, Klassifikation |
 | **Jinghao** | Dataset-Visualisierung (Hauptfokus) | Research, Pipeline-Tests, gemeinsame Demos |
 
-Der Abschnitt zu Jinghaos Dataset-Visualisierung wird in dieser Doku noch ergänzt.
+Die Visualisierungsmodule sind in **Kapitel 7** (Zustands-Playback, Lawan) und **Kapitel 8** (MRCP-/Dataset-Analyse, Jinghao) beschrieben; technische Details stehen in den jeweiligen Modul-READMEs (siehe Index oben).
 
 ---
 
@@ -324,6 +337,9 @@ Ablauf (vereinfacht):
 
 PyPREP ist in der Recherche und Architektur vorgesehen; der aktuelle Prototyp zeigt zuerst den **MNE-Kernpfad** (Laden → Filter → Referenz → Epochs → Plot). Die robuste Bad-Channel-/PREP-Stufe kann darauf aufgesetzt werden, sobald Montage/Kanalnamen vollständig gemappt sind.
 
+Installations- und Schrittanleitung: [`pipeline_prototype/README.md`](pipeline_prototype/README.md).  
+Für die ausgebaute MRCP-Analyse mit Reports und Gruppenauswertung siehe [`mrcp-eeg-analysis/`](mrcp-eeg-analysis/) (Kapitel 8).
+
 ---
 
 ## 6. Feedback und Kurskorrektur: Synthetische Daten
@@ -345,7 +361,8 @@ Zusätzlich gibt es einen **EmotivPRO-ähnlichen Export-Dummy**, damit Import, S
 ### 6.3 Legacy: synthetische Emotion-Zustände
 
 Ordner: [`legacy_synthetic_exports/`](legacy_synthetic_exports/)  
-Kurzbeschreibung dort: [`legacy_synthetic_exports/README_synthetic_emotion_dataset.txt`](legacy_synthetic_exports/README_synthetic_emotion_dataset.txt)
+Modul-Doku: [`legacy_synthetic_exports/README.md`](legacy_synthetic_exports/README.md)  
+Zusätzliche Kurznotiz: [`legacy_synthetic_exports/README_synthetic_emotion_dataset.txt`](legacy_synthetic_exports/README_synthetic_emotion_dataset.txt)
 
 **Erzeugte Zustände (Trigger-Codes):**
 
@@ -375,7 +392,8 @@ Als inhaltliche Klammer dient auch [`presentations/klassifizierung.xlsx`](presen
 
 ### 6.4 EmotivPRO-Export-Dummy
 
-Ordner: [`synthetic_emotivexport/`](synthetic_emotivexport/)
+Ordner: [`synthetic_emotivexport/`](synthetic_emotivexport/)  
+Modul-Doku: [`synthetic_emotivexport/README.md`](synthetic_emotivexport/README.md)
 
 Ziel: EmotivPRO-ähnliches **CSV-V2-Schema** (Metadata-Zeile, `EEG.*`, `MOT.*`, `CQ.*`/`EQ.*`, `POW.*`, `PM.*`, Marker) bereitstellen und per Python nach MNE importieren.
 
@@ -397,7 +415,7 @@ Damit lassen sich Importfehler früh abfangen und die spätere HTML-/Visualisier
 ## 7. EEG State Visualizer
 
 Ordner: [`eeg-state-visualizer/`](eeg-state-visualizer/)  
-Details zur Bedienung: [`eeg-state-visualizer/README.md`](eeg-state-visualizer/README.md)
+**Modul-Doku (Installation, Format, Score):** [`eeg-state-visualizer/README.md`](eeg-state-visualizer/README.md) — maßgeblich für den verbindlichen EmotivPRO-Export ist weiterhin [`synthetic_emotivexport/`](synthetic_emotivexport/) (Kapitel 6.4).
 
 ### 7.1 Ziel
 
@@ -506,9 +524,7 @@ python flex2_export_json.py                 # Standard-Export aus synthetic_emot
 python flex2_export_json.py aufnahme.csv    # eigene Aufnahme
 ```
 
-Danach `eeg_state_playback.html` im Browser öffnen und unter **Choose file** die erzeugte JSON aus `exports/` wählen. Benötigt werden nur `numpy`, `pandas` und `scipy`.
-
-<!-- TODO Lawan: Videoanalyse / eingebautes Feedback hier beschreiben (was war das Feedback, was wurde geändert?) -->
+Danach `eeg_state_playback.html` im Browser öffnen und unter **Load recording** / **Choose file** die erzeugte JSON aus `exports/` wählen. Benötigt werden nur `numpy`, `pandas` und `scipy` (siehe [`eeg-state-visualizer/requirements.txt`](eeg-state-visualizer/requirements.txt)).
 
 ### 7.8 Grenzen und Entscheidungen
 
@@ -520,7 +536,74 @@ Danach `eeg_state_playback.html` im Browser öffnen und unter **Choose file** di
 
 ---
 
-## 8. Was bisher umgesetzt ist (Stand Research + Daten)
+## 8. MRCP EEG-Analyse (Dataset-Visualisierung)
+
+Ordner: [`mrcp-eeg-analysis/`](mrcp-eeg-analysis/)  
+**Modul-Doku:** [`mrcp-eeg-analysis/README.md`](mrcp-eeg-analysis/README.md) (Installation, CLI, Outputs, Tests)
+
+### 8.1 Ziel und Bezug zum Projekt
+
+Während `pipeline_prototype/` den **schlanken MNE-Einstieg** auf dem Hand-Gesture-Set zeigt und `eeg-state-visualizer/` **Zustands-Scores im Browser** abspielt, bündelt **`mrcp-eeg-analysis`** die **vollständige MRCP-/EMG-Auswertung** desselben Datensatzes: automatisierte Verarbeitung, Qualitätskontrolle, individuelle und gruppenweite HTML-Berichte sowie optionale Animationsvideos. Schwerpunkt: **Jinghao Zhang** (Pipeline-Integration, Visualisierung, Reporting).
+
+Datenbasis: öffentliches **Hand-Gesture / MRCP**-Set (Emotiv Flex 2, 128 Hz EEG, EMG am Unterarm) – siehe Kapitel 4.3.
+
+### 8.2 Funktionen (Auszug aus der Modul-README)
+
+| Funktion | Beschreibung |
+| --- | --- |
+| Automatisierte Verarbeitung | Einheitliche Konfiguration über `config/dataset.yaml` (Sampling, Kanäle, Trigger, CAR, MRCP-Filter 0,1–1 Hz) |
+| 32-Kanal-Visualisierung | EEG-Signale und räumliche Darstellung der Aktivität |
+| Individuelle HTML-Reports | Pro Subject unter `outputs/SUBJECTxx/reports/` |
+| Gruppenanalyse | Zusammenführung mehrerer Probanden, Report unter `outputs/group_analysis/reports/` |
+| Videos | MP4/GIF-Animationen (MRCP + EMG + Kopfoberfläche), zentral unter `outputs/videos/` |
+| Zentrale Startseite | `outputs/reports/index.html` – Einstieg in alle Berichte |
+| Tests | `pytest` im Ordner `tests/` |
+
+### 8.3 Projektstruktur (kurz)
+
+```text
+mrcp-eeg-analysis/
+├── config/dataset.yaml      # zentrale Dataset-Parameter
+├── src/                     # data_loader, eeg_processing, mrcp_analysis, report, video_generator, …
+├── tests/
+└── outputs/                 # nach Lauf: reports, figures, videos, group_analysis
+```
+
+Details und Modulbeschreibung der `src/`-Dateien: [`mrcp-eeg-analysis/README.md`](mrcp-eeg-analysis/README.md#projektstruktur).
+
+### 8.4 Schnellstart
+
+```bash
+cd mrcp-eeg-analysis
+conda create -n mne python=3.11
+conda activate mne
+python -m pip install -r requirements.txt
+
+# eine Person analysieren (Datenpfad anpassen, z. B. pipeline_prototype/data/raw)
+python -m src.main --data-dir "../pipeline_prototype/data/raw" --subject SUBJECT01
+
+# alle Subjects
+python -m src.main --data-dir "../pipeline_prototype/data/raw" --all-subjects
+
+# Berichte lokal ansehen
+python -m src.report_server --output-dir outputs --port 8000
+# → http://127.0.0.1:8000/reports/index.html
+```
+
+Dry-Run, Video-Generierung und Report-Rebuild sind in der Modul-README dokumentiert.
+
+### 8.5 Abgrenzung zu anderen Modulen
+
+| Modul | Fokus |
+| --- | --- |
+| `pipeline_prototype/` | Minimaler Lehr-/Research-Prototyp, Notebooks, erste Evoked-Plots |
+| `mrcp-eeg-analysis/` | Produktionsnahe MRCP-Pipeline, EMG, QC, HTML-Reports, Gruppe, Videos |
+| `eeg-state-visualizer/` | EmotivPRO-Export → Zustands-Scoring → Browser-Topografie (Emotion/Kognition/Motorik-Labels) |
+| `synthetic_emotivexport/` | Referenz-CSV-Schema für Flex-2-Exporte (Validator für Visualizer) |
+
+---
+
+## 9. Was bisher umgesetzt ist (Stand Research + Daten)
 
 | Baustein | Status | Ort |
 | --- | --- | --- |
@@ -532,30 +615,9 @@ Danach `eeg_state_playback.html` im Browser öffnen und unter **Choose file** di
 | Synthetische Emotion-Daten + HTML-Demo-Anbindung | erledigt (Demo-Qualität) | `legacy_synthetic_exports/` |
 | EmotivPRO-Dummy + MNE-Import + Error Cases | erledigt | `synthetic_emotivexport/` |
 | Klassifikation Zustände/Bänder | erledigt als Übersicht | `presentations/klassifizierung.xlsx` |
-| Zustands-Visualisierung (HTML-Playback) | erledigt | `eeg_state_visualisation/` |
-| Dataset-Visualisierung (Jinghao) | folgt in Doku | später ergänzen |
-| PyPREP voll in Pipeline integriert | teilweise / offen | nächster technischer Schritt |
-| Eigene Aufnahmen mit Uni-Flex-2 | abhängig von Geräteverfügbarkeit | offen |
-
----
-
-## 9. Probleme und offene Punkte
-
-**Probleme / Learnings**
-
-- Öffentliche **Flex-2-Emotion-Daten** praktisch nicht verfügbar → Motorik-Set + Synthetik als Kompromiss.  
-- Alljoined zeigt Hardware-Fit, sprengt aber Seminar-Scope.  
-- Hand-Gesture-CSVs nutzen nummerierte Spalten (`2`…`33`); für Topomaps/PyPREP braucht es ein sauberes **10-10-Kanalnamen-Mapping** (im synthetischen Emotion-Export und EmotivPRO-Dummy bereits als AF3…O2 modelliert).  
-- Synthetische Emotion-Muster sind **didaktisch**, nicht validiert – das muss in Präsi und Doku transparent bleiben.  
-- **EmotivPRO liefert kein Mu- und kein Delta-Band.** Mu wird in der Visualisierung auf Alpha abgebildet, Delta bleibt unbewertet. Dadurch schlagen die Motorik-Zustände auch bei global sinkendem Alpha leicht an.
-- Gamma ist mit diesem Setup EMG-anfällig und daher nur eingeschränkt aussagekräftig.
-
-**Noch zu tun**
-
-- Abschnitt zu **Jinghaos Dataset-Visualisierung** hier ergänzen.
-- PyPREP-Stufe (Bad Channels, robuste Referenz) fest in den Prototyp hängen.  
-- Ggf. echte Flex-2-Aufnahmen (sobald Gerät verfügbar) gegen die gleiche Pipeline laufen lassen.  
-- READMEs der Visualisierungsordner finalisieren, Repo-Zugriff an Bagci/Baumartz, Abgabe Abschlussdoku / OLAT.
+| Zustands-Visualisierung (HTML-Playback) | erledigt | `eeg-state-visualizer/`, Kapitel 7 |
+| MRCP-/Dataset-Visualisierung (HTML, Videos, Gruppe) | erledigt | `mrcp-eeg-analysis/`, Kapitel 8 |
+| Modul-READMEs pro Ordner | erledigt | Index oben + jeweilige `README.md` |
 
 ---
 
@@ -563,34 +625,37 @@ Danach `eeg_state_playback.html` im Browser öffnen und unter **Choose file** di
 
 ```text
 .
-├── README.md                          ← diese Abschlussdokumentation
-├── presentations/                     ← Präsis, Pipeline-PDF, Klassifizierung
-├── pipeline_prototype/                ← MNE-Pipeline auf Hand-Gesture-Daten
-│   ├── data/raw/                      ← SUBJECT*-CSVs (+ Docs)
-│   ├── src/eeg_pipeline.py
-│   ├── outputs/figures/               ← Evoked-Plots
-│   ├── 01_check_data.ipynb
-│   └── environment.yml
-├── eeg-state-visualizer/              ← Zustands-Scoring + abspielbare Topografie
-│   ├── emotivpro_io.py                ← EmotivPRO-CSV-Parser + Schema-Validierung
-│   ├── eeg_states.py                  ← Scoring der mentalen Zustände
-│   ├── flex2_export_json.py           ← CSV → Playback-JSON
-│   ├── states.json                    ← Zustandsdefinitionen (Elektroden, Bänder, Trend)
-│   ├── eeg_state_playback.html        ← Oberfläche zum Abspielen im Browser
-│   ├── exports/                       ← erzeugte JSON-Dateien
-│   └── README.md                      ← Bedienung, Band-Mapping, Score-Erklärung
-├── legacy_synthetic_exports/          ← synthetische Emotion-Zustände + HTML-Demo
-├── mrcp-eeg-analysis/                 ← MRCP-Pipeline zur EEG/EMG-Analyse und Visualisierung
-│   ├── src/                           ← Verarbeitung, MRCP-Analyse, Reports und Videos
-│   ├── config/                        ← zentrale Dataset-Konfiguration
-│   ├── tests/                         ← automatisierte Tests
-│   └── README.md                      ← Installation, Verwendung und Outputs
-└── synthetic_emotivexport/            ← EmotivPRO-ähnlicher Dummy-Export + Importer
+├── README.md                          ← diese Abschlussdokumentation (+ Dokumentationsindex)
+├── presentations/README.md            ← Präsis, PDF, klassifizierung.xlsx
+├── pipeline_prototype/README.md       ← MNE-Prototyp Hand-Gesture
+├── legacy_synthetic_exports/README.md ← synthetische Emotion-Zustände, Legacy-HTML
+├── synthetic_emotivexport/README.md   ← EmotivPRO-V2-Dummy, Import, Error Cases
+├── eeg-state-visualizer/README.md     ← Zustands-Scoring, Browser-Playback (Lawan)
+├── mrcp-eeg-analysis/README.md        ← MRCP/EMG-Pipeline, Reports, Videos (Jinghao)
+│
+├── presentations/                     ← .pptx, .pdf, klassifizierung.xlsx
+├── pipeline_prototype/                ← data/raw, src/eeg_pipeline.py, outputs/figures
+├── legacy_synthetic_exports/          ← CSV/JSON/JS + eeg_zustaende*.html
+├── synthetic_emotivexport/            ← Dummy-CSV, schema_columns.json, src/
+├── eeg-state-visualizer/              ← flex2_export_json.py, eeg_state_playback.html, exports/
+└── mrcp-eeg-analysis/                 ← config/, src/, tests/, outputs/ (nach Lauf)
 ```
+
+Jeder Ordner mit `README.md` ist im **Dokumentationsindex** am Anfang verlinkt; Kapitel 7 und 8 fassen die beiden Visualisierungsmodule narrativ zusammen.
 
 ---
 
-## 11. Quellen (Auswahl)
+## 11. Probleme und Learnings
+
+- Öffentliche **Flex-2-Emotion-Daten** praktisch nicht verfügbar → Motorik-Set + Synthetik als Kompromiss.  
+- Hand-Gesture-CSVs nutzen nummerierte Spalten (`2`…`33`); für Topomaps/PyPREP braucht es ein sauberes **10-10-Kanalnamen-Mapping** (im synthetischen Emotion-Export und EmotivPRO-Dummy bereits als AF3…O2 modelliert).  
+- Synthetische Emotion-Muster sind **didaktisch**, nicht validiert – das muss in Präsi und Doku transparent bleiben.  
+- **EmotivPRO liefert kein Mu- und kein Delta-Band.** Mu wird in der Visualisierung auf Alpha abgebildet, Delta bleibt unbewertet. Dadurch schlagen die Motorik-Zustände auch bei global sinkendem Alpha leicht an.
+- Gamma ist mit diesem Setup EMG-anfällig und daher nur eingeschränkt aussagekräftig.
+
+---
+
+## 12. Quellen (Auswahl)
 
 **Datensätze / Übersichten**
 
@@ -611,12 +676,10 @@ Danach `eeg_state_playback.html` im Browser öffnen und unter **Choose file** di
 
 ---
 
-## 12. Nächste Ergänzungen in dieser Doku
+## Transparenzhinweis
 
-2. **Jinghao:** Dataset-Visualisierung, Features, Screenshots.  
-3. Kurze **Beitragsmatrix** „wer hat was intensiver umgesetzt“ nach finaler Abstimmung.  
-4. Optional: kurze READMEs in den Visualisierungsordnern verlinken.
+Teile dieser Dokumentation (insbesondere Formulierung, Struktur und Markdown-Formatierung) wurden mit Unterstützung von **KI-Tools** erstellt. Inhaltlich basiert der Text auf **eigenen Recherchen, Notizen und Ergebnissen der Gruppe 5**; die KI diente vor allem als **Formulierungs- und Formatierungshilfe**, nicht als alleinige Quelle für fachliche Aussagen.
 
 ---
 
-*Gruppe 5 · Multilingual AI · EEG · Abschlussdokumentation (Research-/Datenstand)*
+*Gruppe 5 · Multilingual AI · EEG · Abschlussdokumentation*
