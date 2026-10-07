@@ -1,8 +1,8 @@
 # EEG State Visualizer
 
 EEG-Auswertung und Visualisierung für das **EMOTIV FLEX 2** (32 Kanäle,
-10-20-System). Liest EmotivPRO-Exporte (Handgesten-Set und synthetischer Export)
-und erzeugt daraus eine abspielbare Topografie im Browser.
+10-20-System). Liest EmotivPRO-Exporte (synthetischer Export, Handgesten-Set nach
+Umwandlung) und erzeugt daraus eine abspielbare Topografie im Browser.
 
 ## Der verbindliche Standard
 
@@ -23,7 +23,7 @@ Kurzfassung des Formats:
 |---|---|
 | Zeile 1 | Metadaten als `key:value`-Paare, u. a. `title`, `sampling rate`, `samples` |
 | Zeile 2 | Spaltennamen |
-| CSV V2 | eine Datei, entweder mit allen Streams (wie `synthetic_emotivexport`) oder nur mit Roh-EEG, CQ, EQ und Markern (wie das Handgesten-Set) |
+| CSV V2 | eine Datei, entweder mit allen Streams (wie `synthetic_emotivexport`) oder nur mit Roh-EEG, CQ, EQ und Markern |
 | EEG | `EEG.<Sensor>` in Mikrovolt |
 | Motion | `MOT.AccX/Y/Z`, dazu `MOT.Q0..Q3` (neuere Headsets) oder `MOT.GYROX..Z` |
 | Bandleistung | `POW.<Sensor>.<Theta\|Alpha\|BetaL\|BetaH\|Gamma>` in dB |
@@ -53,6 +53,43 @@ Das Werkzeug nimmt auch eine eigene Aufnahme:
 python flex2_export_json.py aufnahme.csv
 ```
 
+## Handgesten-Set
+
+Datensatz: [Mendeley – y23s2xg6x4](https://data.mendeley.com/datasets/y23s2xg6x4/1). Je Proband
+fünf Durchgänge. Ein Auszug liegt auch im Repo unter
+`../pipeline_prototype/data/raw/SUBJECT01/`.
+
+Die CSVs besitzen keine Metadatenzeile, Spalten `0`-`37`
+statt `EEG.<Sensor>`, `Triggers` statt Marker.
+
+### Einzelne Aufnahme
+
+```bash
+python handgesture_to_emotivpro.py SUBJECT01_Trial_01_EEG.csv
+python flex2_export_json.py SUBJECT01_Trial_01_EEG_emotivpro.csv
+```
+
+Konvertiert die Spalten `2`-`33` nach dem FLEX-2-Layout (wie in
+`mrcp-eeg-analysis/config/dataset.yaml`), übersetzt `Triggers` in Marker und
+schreibt `*.markers.json` mit den Trigger-Namen (`771` = `preparation`,
+`7711` = `movement`, `7712` = `movement_end`, `1000` = `rest`, ...). Der Output liegt im selben Verzeichnis wie der input.
+
+In einer einzelnen Aufnahme ist die Motorik nur schwach zu sehen, deshalb besser mitteln.
+
+### Gemittelte Bewegung
+
+```bash
+python average_movement.py "<Pfad>/SUBJECTS"
+python flex2_export_json.py SUBJECTS_average_emotivpro.csv
+```
+
+`average_movement.py` mittelt über alle Versuche. Als Eingabe gehen einzelne CSVs oder Ordner, Unterordner
+werden mit durchsucht. Ein einzelner Proband geht mit `.../SUBJECTS/SUBJECT01`.
+
+### Hinweise
+
+- CQ und EQ fehlen im Datensatz, die Qualitätsprüfung läuft ohne diese Kriterien.
+
 ## Bänder der Oberfläche
 
 Die Bänder der Oberfläche werden auf die fünf Bänder abgebildet, die EmotivPRO
@@ -76,7 +113,8 @@ dann leicht an, wenn der Alpha nur global einbricht statt sensomotorisch.
 
 Kein trainierter Klassifikator: Für jede Zuordnung wird gemessen, wie weit die
 Bandleistung in der erwarteten Richtung vom Ruhewert abweicht (z-Wert),
-gemittelt über den Zustand. Für die Balken werden die Zustände untereinander
+gemittelt über den Zustand. Der Ruhewert kommt aus allen Segmenten mit dem Label
+`neutral`, `baseline` oder `rest`. Für die Balken werden die Zustände untereinander
 normiert. Schlägt keiner über die Schwelle aus, bleiben alle klein. Der Score zeigt nur wie gut das Muster passt.
 
 In der Oberfläche zeigen die Balken den Score des aktuellen Frames (ein kurzes

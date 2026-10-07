@@ -135,7 +135,7 @@ Diese Zuordnung erklärt auch unsere Projektentscheidungen:
 
 - Beim **Hand-Gesture-Datensatz** schauen wir vor allem auf **C3 / frontozentrale** Kanäle und Mu/Beta (Motorik rechts).  
 - Bei den **synthetischen Emotion-/Kognitionsdaten** modellieren wir u. a. frontale Alpha-Asymmetrie, Frontal-Midline-Theta (Fokus) und okzipitales Alpha (Entspannung) – passend zu den Zeilen oben.  
-- Der **EEG State Visualizer** ([`eeg-state-visualizer/`](eeg-state-visualizer/)) setzt diese Zuordnung für die synthethischen Emotion-/Kognitionsdaten um: Die Zustände mit ihren Elektroden, Bändern und Trends sind in [`states.json`](eeg-state-visualizer/states.json) definiert, die Oberfläche färbt die Elektroden je Zustand ein.
+- Der **EEG State Visualizer** ([`eeg-state-visualizer/`](eeg-state-visualizer/)) setzt diese Zuordnung um, für die synthetischen Daten und (nach Umwandlung) für das Hand-Gesture-Set: Die Zustände mit ihren Elektroden, Bändern und Trends sind in [`states.json`](eeg-state-visualizer/states.json) definiert, die Oberfläche färbt die Elektroden je Zustand ein.
 
 ### 3.5 Kurz: von der Kurve zur Aussage
 
@@ -446,10 +446,26 @@ eeg_state_playback.html         Abspielen, Zustand und Band wählen, Segmenterge
 | `states.json` | Zentrale Definition aller Zustände (Elektroden, Band, Richtung, Hinweistext) |
 | `flex2_export_json.py` | Verbindet beides und schreibt das JSON für die Oberfläche |
 | `eeg_state_playback.html` | Oberfläche, läuft ohne Server direkt im Browser |
+| `handgesture_to_emotivpro.py` | Wandelt eine Hand-Gesture-CSV in das EmotivPRO-Format um (vorgelagerter Schritt) |
+| `average_movement.py` | Mittelt alle Bewegungen des Hand-Gesture-Sets zu einer abspielbaren Aufnahme |
 
 ### 7.3 Eingabe und Validierung
 
-Verbindlicher Standard ist das Format in `synthetic_emotivexport/`. Das Tool nimmt zusätzlich das **Hand-Gesture-Set**, das nur Roh-EEG, CQ, EQ und Marker enthält. Fehlen die `POW.*`-Spalten, wird die Bandleistung aus dem Roh-EEG berechnet (`scipy`).
+Verbindlicher Standard ist das Format in `synthetic_emotivexport/`. Fehlen die `POW.*`-Spalten, wird die Bandleistung aus dem Roh-EEG berechnet (`scipy`).
+
+Das **Hand-Gesture-Set** (Kapitel 4.3) liegt nicht in diesem Format vor: Es hat keine Metadatenzeile, anonyme Spaltennummern statt `EEG.<Sensor>` und eine `Triggers`-Spalte statt Markern. `handgesture_to_emotivpro.py` wandelt es vorher um:
+
+- Spalten `2`–`33` → `EEG.AF3` … `EEG.O2` (Zuordnung wie in `mrcp-eeg-analysis/config/dataset.yaml`)
+- `Triggers` → `MarkerIndex`, `MarkerType`, `MarkerValueInt`
+- Sidecar `*.markers.json` mit den Trigger-Namen (`771` preparation, `7711` movement, `7712` movement_end, `1000` rest, …), damit die Segmente lesbar benannt sind und die `rest`-Segmente als Ruhewert dienen
+
+Da das Hand-Gesture-Set keine CQ-/EQ-Spalten hat, läuft die Qualitätsprüfung dort ohne diese Kriterien.
+
+In einer einzelnen Aufnahme ist die Motorik kaum zu sehen (siehe 7.8). `average_movement.py` schneidet deshalb um jeden Bewegungsbeginn (`7711`) ein Fenster von −3,5 bis +8 s aus (rest, preparation, movement, movement_end, rest), mittelt Roh-EEG und Bandleistung über alle Bewegungen und schreibt das Ergebnis als eine abspielbare Aufnahme. Eingabe sind einzelne CSVs oder Ordner.
+
+![EEG State Visualizer: gemittelte Bewegung über alle Probanden, Zustand Motor right erkannt](eeg-state-visualizer/screenshot_average_movement.png)
+
+*Gemittelte Bewegung über alle Probanden (1.733 Bewegungen), Segment `movement` bei t ≈ 5,2 s, Alpha-Band: `motor_right` hat den höchsten Score (100 %) und ist als Segmentergebnis abgehakt, gefolgt von `motor_left` (77 %) und `motor_legs` (76 %). Die stärksten Abfälle liegen frontozentral (FCz −5,0 z, FC3 −3,7 z), aber auch frontal (AF3, F4). Der Alpha-Abfall ist also nicht rein sensomotorisch.
 
 Aufnahmen, die nicht zum Format passen, werden mit einer eigenen Fehlerklasse abgelehnt statt stillschweigend verarbeitet:
 
@@ -506,7 +522,7 @@ EmotivPRO liefert nur fünf Bänder. Die Bänder der Oberfläche werden darauf a
 
 Es gibt **keinen trainierten Klassifikator**. Der Score misst, wie gut ein Bandleistungsmuster zur erwarteten Richtung passt:
 
-1. **Ruhewert:** Mittelwert und Streuung je Elektrode und Band aus einem Ruhefenster. Das ist bevorzugt das Segment mit dem Label `neutral` bzw. `baseline`, sonst die Zeit vor dem ersten Marker, sonst alle brauchbaren Samples.
+1. **Ruhewert:** Mittelwert und Streuung je Elektrode und Band aus allen Segmenten mit dem Label `neutral`, `baseline` oder `rest` zusammen. Gibt es keine, wird die Zeit vor dem ersten Marker genommen, sonst alle brauchbaren Samples.
 2. **z-Wert** je Zuordnung: Abweichung des aktuellen Fensters vom Ruhewert, in Streuungen.
 3. **Richtung:** Bei `up` zählt der z-Wert, bei `down` der negative z-Wert, bei `mix` der Betrag mit halbem Gewicht.
 4. **Zustandswert:** Mittelwert über alle messbaren Zuordnungen des Zustands. Ein Wert von 2 entspricht dem vollen Ausschlag.
@@ -524,6 +540,20 @@ python flex2_export_json.py                 # Standard-Export aus synthetic_emot
 python flex2_export_json.py aufnahme.csv    # eigene Aufnahme
 ```
 
+Für das Hand-Gesture-Set zuerst umwandeln:
+
+```bash
+python handgesture_to_emotivpro.py SUBJECT01_Trial_01_EEG.csv    # -> SUBJECT01_Trial_01_EEG_emotivpro.csv
+python flex2_export_json.py SUBJECT01_Trial_01_EEG_emotivpro.csv
+```
+
+Gemittelte Bewegung über den ganzen Datensatz:
+
+```bash
+python average_movement.py "<Pfad>/SUBJECTS"    # -> SUBJECTS_average_emotivpro.csv
+python flex2_export_json.py SUBJECTS_average_emotivpro.csv
+```
+
 Danach `eeg_state_playback.html` im Browser öffnen und unter **Load recording** / **Choose file** die erzeugte JSON aus `exports/` wählen. Benötigt werden nur `numpy`, `pandas` und `scipy` (siehe [`eeg-state-visualizer/requirements.txt`](eeg-state-visualizer/requirements.txt)).
 
 ### 7.8 Grenzen und Entscheidungen
@@ -532,6 +562,8 @@ Danach `eeg_state_playback.html` im Browser öffnen und unter **Load recording**
 - **Mu und SMR sind Ersatzbänder** (Alpha bzw. Low Beta). Deshalb schlagen die drei Motorik-Zustände auch an, wenn Alpha nur global einbricht statt sensomotorisch.
 - **Gamma** ist mit diesem Setup EMG-anfällig, frontopolare Kanäle sind artefaktreich.
 - **Delta** wird von EmotivPRO nicht exportiert und bleibt unbewertet.
+- **Hand-Gesture-Set:** In einer einzelnen Aufnahme ist der Mu-Abfall pro Bewegung kleiner als das Rauschen, Motorik wird dort nicht zuverlässig erkannt. Gemittelt über alle Probanden (rund 1.700 Bewegungen, `average_movement.py`) wird `motor_right` in `movement` und `movement_end` erkannt, links schwächer als rechts. Ein einzelner Proband bleibt verrauscht.
+- **Verzögerung:** Die aus dem Roh-EEG berechnete Bandleistung umfasst jeweils die letzten 2 s, deshalb schlägt die Motorik etwa 1 s nach Bewegungsbeginn an.
 - **Keine MNE-Abhängigkeit:** Eine MNE-Pipeline war zunächst Teil des Ordners und wurde wieder entfernt, weil für Scoring und Oberfläche die Bandleistung genügt.
 
 ---
@@ -637,7 +669,7 @@ Dry-Run, Video-Generierung und Report-Rebuild sind in der Modul-README dokumenti
 ├── pipeline_prototype/                ← data/raw, src/eeg_pipeline.py, outputs/figures
 ├── legacy_synthetic_exports/          ← CSV/JSON/JS + eeg_zustaende*.html
 ├── synthetic_emotivexport/            ← Dummy-CSV, schema_columns.json, src/
-├── eeg-state-visualizer/              ← flex2_export_json.py, eeg_state_playback.html, exports/
+├── eeg-state-visualizer/              ← flex2_export_json.py, handgesture_to_emotivpro.py, average_movement.py, eeg_state_playback.html, exports/
 └── mrcp-eeg-analysis/                 ← config/, src/, tests/, outputs/ (nach Lauf)
 ```
 
@@ -648,7 +680,7 @@ Jeder Ordner mit `README.md` ist im **Dokumentationsindex** am Anfang verlinkt; 
 ## 11. Probleme und Learnings
 
 - Öffentliche **Flex-2-Emotion-Daten** praktisch nicht verfügbar → Motorik-Set + Synthetik als Kompromiss.  
-- Hand-Gesture-CSVs nutzen nummerierte Spalten (`2`…`33`); für Topomaps/PyPREP braucht es ein sauberes **10-10-Kanalnamen-Mapping** (im synthetischen Emotion-Export und EmotivPRO-Dummy bereits als AF3…O2 modelliert).  
+- Hand-Gesture-CSVs nutzen nummerierte Spalten (`2`…`33`); für Topomaps/PyPREP braucht es ein sauberes **10-10-Kanalnamen-Mapping** (im synthetischen Emotion-Export und EmotivPRO-Dummy bereits als AF3…O2 modelliert); im Visualizer übernimmt das `handgesture_to_emotivpro.py` (Zuordnung aus `mrcp-eeg-analysis/config/dataset.yaml`).  
 - Synthetische Emotion-Muster sind **didaktisch**, nicht validiert – das muss in Präsi und Doku transparent bleiben.  
 - **EmotivPRO liefert kein Mu- und kein Delta-Band.** Mu wird in der Visualisierung auf Alpha abgebildet, Delta bleibt unbewertet. Dadurch schlagen die Motorik-Zustände auch bei global sinkendem Alpha leicht an.
 - Gamma ist mit diesem Setup EMG-anfällig und daher nur eingeschränkt aussagekräftig.

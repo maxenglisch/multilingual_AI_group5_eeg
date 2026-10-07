@@ -122,7 +122,7 @@ class StateScorer:
     @staticmethod
     def baseline_mask(rec: EmotivProRecording,
                       window: tuple[float, float] | None = None) -> np.ndarray:
-        """Samples of the rest window."""
+        """Samples of all rest segments."""
         good = rec.quality()["ok"].to_numpy()
         if window is not None:
             mask = good & window_mask(rec, *window)
@@ -130,11 +130,13 @@ class StateScorer:
                 return mask
         segments = rec.segments()
         if not segments.empty:
+            rest = np.zeros(rec.n_samples, dtype=bool)
             for _, seg in segments.iterrows():
                 if str(seg["label"]).lower().startswith(BASELINE_LABELS):
-                    mask = good & window_mask(rec, seg["start_s"], seg["stop_s"])
-                    if mask.sum() >= 8:
-                        return mask
+                    rest |= window_mask(rec, seg["start_s"], seg["stop_s"])
+            mask = good & rest
+            if mask.sum() >= 8:
+                return mask
             first_marker = float(segments["start_s"].min())
             if first_marker >= PRE_MARKER_REST_MIN_S:
                 mask = good & window_mask(rec, 0.0, first_marker)
